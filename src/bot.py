@@ -154,7 +154,7 @@ class ZoharBot:
         # Pending debounce task survives cycle_finished and fires during
         # the next IDLE wake-wait so a queued push isn't lost.
         self._last_gh_deploy_at: Optional[dt.datetime] = None
-        # Lazy-loaded articles catalog cache (Heb/Source/articles_catalog.json),
+        # Lazy-loaded articles catalog cache (<HEB_ROOT>/Source/articles_catalog.json),
         # used to resolve chapter_ru and articles-per-chapter for the
         # auto-deploy announcement.
         self._catalog_cache: Optional[list[dict]] = None

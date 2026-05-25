@@ -89,6 +89,7 @@
 | `{{chunk_budget_chars}}` | бюджет одного чанка в символах исходного текста |
 | `{{HEB_ROOT}}` | значение `HEB_ROOT` из `.env` / `project.config` |
 | `{{CORPUS_TOOLS}}` | абсолютный путь к `<repo>/corpus_tools/` |
+| `{{REPO_ROOT}}` | абсолютный путь к корню репо (нужен для ссылок на `templates/*.md` из промпта, чей CWD = `HEB_ROOT`) |
 | `{{GLOSSARY_PATH}}` | абсолютный путь к `<repo>/glossary/glossary.json` |
 
 **Важно.** Если ты добавила в свой переписанный промпт **новый**

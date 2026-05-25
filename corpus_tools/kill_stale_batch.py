@@ -2,8 +2,9 @@ r"""
 Kill any stale .batch/run_batch.sh left running by a previous session
 and its claude -p translator children.
 
-Called by Docs/_meta.md §2.1 when a new wake-up detects that the
-previous batch is still alive (PID file + alive process). The new
+Called from src/orchestrator.py during PREPARING when a new wake-up
+detects that the previous batch is still alive (PID file + alive
+process; see ARCHITECTURE.md §9.3). The new
 session does NOT wait for the old batch — it terminates it, cleans
 the .batch/ residue, and starts its own cycle from the current
 progress.json state.

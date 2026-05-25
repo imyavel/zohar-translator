@@ -125,6 +125,7 @@ def render_prompt(tpl, art, partial_info=None, chunk_budget_chars=7500):
         'chunk_budget_chars': str(chunk_budget_chars),
         'HEB_ROOT': str(ROOT).replace('\\', '/'),
         'CORPUS_TOOLS': str(Path(__file__).resolve().parent).replace('\\', '/'),
+        'REPO_ROOT': str(Path(__file__).resolve().parents[1]).replace('\\', '/'),
         'GLOSSARY_PATH': str(Path(__file__).resolve().parents[1] / 'glossary' / 'glossary.json').replace('\\', '/'),
     }
     for k, v in subs.items():

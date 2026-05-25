@@ -106,7 +106,12 @@ nginx? Notion? Telegram-канал?). Дальше — два места пра�
 
 - `corpus_tools/build_site.py` — генерация HTML/MD/whatever из
   переведённых статей. По умолчанию даёт статический сайт; адаптируй
-  формат.
+  формат. **Внимание: содержит hardcoded Зоар/Танах-зависимости** —
+  `import parasha` (модуль недельной главы Торы), `BOOK_SLUGS` (5 книг
+  Торы + вступление), `build_parasha_widget_html` (виджет недельной
+  главы). Для не-Танах корпуса вырежи `import parasha`, `BOOK_SLUGS`,
+  вызовы `build_parasha_widget_html` и сам widget-блок — иначе
+  ImportError или ссылки на несуществующие главы.
 - `src/gh_deploy.py` — собственно деплой. Замени git-push на вызов
   своего канала (rsync, scp, API).
 
@@ -140,8 +145,8 @@ nginx? Notion? Telegram-канал?). Дальше — два места пра�
 }
 ```
 
-`gh_token_set: true` — флаг «токен есть в `.env`/`project.config`»,
-само значение не дублируй в `progress.json`.
+`gh_token_set: true` — флаг «токен есть в `.env`», само значение не
+дублируй в `progress.json`.
 
 ## Чек-лист стадии 6
 
