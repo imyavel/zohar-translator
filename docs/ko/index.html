@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zohar-translator — 장문 LLM 번역 시스템</title>
+  <meta name="description" content="오픈소스 장문 LLM 번역 오케스트레이터. 청크, 배치, 구독 한도 우회, GitHub Pages 자동 게시.">
+  <link rel="stylesheet" href="../style.css">
+  <script src="../lang.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="lang-switcher" aria-label="언어 선택">
+        <a href="../ru/" data-lang="ru">Русский</a>
+        <a href="../en/" data-lang="en">English</a>
+        <a href="../zh/" data-lang="zh">中文</a>
+        <a href="../es/" data-lang="es">Español</a>
+        <a href="../pt/" data-lang="pt">Português</a>
+        <a href="../ja/" data-lang="ja">日本語</a>
+        <a href="../de/" data-lang="de">Deutsch</a>
+        <span class="current" aria-current="page">한국어</span>
+        <a href="../fr/" data-lang="fr">Français</a>
+        <a href="../it/" data-lang="it">Italiano</a>
+        <a href="../tr/" data-lang="tr">Türkçe</a>
+        <a href="../lt/" data-lang="lt">Lietuvių</a>
+        <a href="../he/" data-lang="he">עברית</a>
+      </nav>
+      <h1>zohar-translator</h1>
+      <p class="tagline">
+        장문 LLM 번역 시스템: 수만 개의 단락, 구독 한도 우회, 자동 게시.
+        배포는 운영자의 LLM 에이전트가 읽는
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a>를
+        통해 진행됩니다.
+      </p>
+    </header>
+
+    <main>
+      <section id="what">
+        <h2>무엇이며 왜 필요한가</h2>
+        <p>
+          조하르의 서에 대한 1700페이지 분량의 주석 «페루시 하-술람»을
+          히브리어와 아람어에서 러시아어로, 오직 자신의 Claude 구독만에
+          의지하여 번역하는 일이 실제로 가능했습니다. <code>zohar-translator</code>는
+          바로 그 번역을 수행하던 시스템의 핵심이며, 이제는 어떤 언어 쌍의
+          어떤 장문 코퍼스에도 작동합니다.
+        </p>
+        <p>
+          입력은 텍스트 카탈로그(장 → 글 → 단락)와 Claude 구독입니다.
+          출력은 번역된 코퍼스, 단락의 연속 번호 매기기, 장과 각주를 갖춘
+          정적 사이트입니다. 그 사이에는 orchestrator가 있어 글을 문자
+          예산에 따라 청크로 나누고, translator 에이전트를 병렬로
+          실행하며, 5시간 및 주간 구독 창을 우회하고, 각 장이 마무리될
+          때마다 결과를 GitHub Pages에 커밋합니다.
+        </p>
+        <p>
+          작동하는 레퍼런스는 우리가 진행한 조하르의 서 번역입니다:
+          <a href="http://imyavel.github.io/zohar-sulam/">imyavel.github.io/zohar-sulam</a>
+          (사이트에 명시된 CC BY 4.0 라이선스). 그 이면에는 여러분이
+          직접 배포할 수 있는 동일한 구성 요소가 자리합니다.
+        </p>
+        <p>
+          시스템을 자신의 코퍼스에 배포하려면 운영자가 Claude Code를
+          설치하고 «<code>RUN_ME.md</code>를 읽고 단계별로 나를
+          안내하라»고 말합니다. 그러면 LLM 에이전트가 8단계의 적응
+          과정을 안내합니다; 기술적 배경 지식은 필요하지 않습니다.
+        </p>
+      </section>
+
+      <section id="stages">
+        <h2>배포 단계</h2>
+        <p>
+          각 단계는 별도의 파일 <code>stages/NN_*.md</code>에 기술되어
+          있습니다. 운영자의 LLM 에이전트는 이를 차례로 불러와 운영자에게
+          «(Q N 중 NN: …)» 형식의 질문을 던지고, 답변을
+          <code>progress.json</code>에 기록합니다 — 덕분에 언제든 세션을
+          중단하고, 새 세션에서 같은 지점부터 이어갈 수 있습니다.
+        </p>
+        <ol class="stages">
+          <li>
+            <strong>Environment</strong>
+            Python 의존성을 설치하고, 기본 GUI가 정상적으로 실행되는지
+            확인합니다. 이 단계 없이는 이후 단계가 무의미합니다.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/01_setup.md">stages/01_setup.md →</a>
+          </li>
+          <li>
+            <strong>Source loader</strong>
+            코퍼스를 어디서 가져올지 결정합니다. Sefaria의 텍스트라면
+            <code>reference/source_loader/download_sefaria.py</code>를 통한
+            기성 fast-path를 사용합니다. 자체 소스라면 운영자가 같은
+            형식(장별로 묶인 JSON 단락)의 로더를 작성합니다.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/02_source_loader.md">stages/02_source_loader.md →</a>
+          </li>
+          <li>
+            <strong>Text structure</strong>
+            chunking 단위: 무엇을 «글»(번역의 단위)로 삼고, 단락을
+            문자 예산에 따라 어떻게 청크로 분할할지를 정의합니다. 조하르의
+            경우 장 → 글 → 술람 단락; 다른 코퍼스의 경우에도 이에 준하는
+            3계층 구조를 따릅니다.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/03_text_structure.md">stages/03_text_structure.md →</a>
+          </li>
+          <li>
+            <strong>Glossary</strong>
+            용어 사전. 우리의 조하르 사전을 시작점으로 가져오거나(같은
+            조하르를 번역하는 경우), 파일 구조와 방법론만 가져올 수도
+            있습니다(translator 에이전트는 전체 내용을 통째로 로드하지
+            않고 CLI 도구를 통해 사전을 다룹니다).
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/04_glossary.md">stages/04_glossary.md →</a>
+          </li>
+          <li>
+            <strong>Prompt template</strong>
+            번역 스타일(축자적 / 문학적 / 혼합), 표기 규칙, «창의적»
+            대목을 번역자 각주로 표시하는 방법. <code>templates/translation_prompt.md</code>의
+            템플릿은 운영자의 선택에 맞춰 LLM 에이전트에 의해 적응됩니다.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/05_prompt.md">stages/05_prompt.md →</a>
+          </li>
+          <li>
+            <strong>Publish target</strong>
+            결과의 게시처: 우리 템플릿을 활용한 GitHub Pages(<code>src/gh_deploy.py</code>를
+            통한 자동 배포), 자체 채널(S3 / GitLab / 자체 서버), 또는
+            게시 없이 로컬에서만 사용.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/06_publish.md">stages/06_publish.md →</a>
+          </li>
+          <li>
+            <strong>Smoke run</strong>
+            합성된 미니 코퍼스에서의 짧은 end-to-end 실행: 전체
+            파이프라인(chunking → translator → resume → commit)이 적응된
+            시스템에서 수 분 내에 동작하는지 확인합니다. 실제 구독을
+            전체 코퍼스에 낭비하지 않습니다.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/07_smoke.md">stages/07_smoke.md →</a>
+          </li>
+          <li>
+            <strong>Hand-off</strong>
+            운영자는 전체 코퍼스에서 GUI를 실행하고 Telegram 봇을 통해
+            모니터링합니다. 이 시점부터 배포용 LLM 에이전트는 물러나고,
+            이후로는 시스템이 스스로 동작합니다.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/08_handoff.md">stages/08_handoff.md →</a>
+          </li>
+        </ol>
+      </section>
+
+      <section id="architecture">
+        <h2>번역기 구조 (GUI + Telegram)</h2>
+        <p>
+          상세한 설명은
+          <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>에
+          있습니다 (9개 절: orchestrator FSM, 병렬성, 한도 우회,
+          chunking+resume, gh_deploy, 확장 지점, 복구 스크립트). 여기서는
+          핵심만 다룹니다.
+        </p>
+        <ul class="arch">
+          <li>
+            <strong>GUI</strong> (<code>src/gui.pyw</code>) — 배치 큐,
+            글의 상태, chunking 예산, 시작/정지 버튼이 자리한 메인
+            창입니다. 운영자의 진입점입니다.
+          </li>
+          <li>
+            <strong>Telegram 봇</strong> (<code>src/bot.py</code>) —
+            장 마감, hit-limit(5h), weekly-limit, 오류에 대한 알림.
+            재개 및 상태 점검 명령어 제공. 선택 사항입니다
+            (<code>--no-bot</code>으로 실행).
+          </li>
+          <li>
+            <strong>Orchestrator</strong> (<code>src/orchestrator.py</code>) —
+            PREPARING → RUNNING → COMPLETED / HIT_LIMIT / WEEKLY_LIMIT /
+            FAILED 상태를 갖는 FSM. 재시도를 처리하고, 충돌 이후 상태를
+            복원하며, translator 에이전트의 병렬성을 관리합니다.
+          </li>
+          <li>
+            <strong>Chunking</strong> — 단락은 원문 텍스트의 문자
+            예산(기본 ~7500)에 따라 청크로 묶입니다. 단락은 절대
+            중간에서 끊기지 않으며, 큰 단락은 그 자체로 하나의 청크가
+            됩니다.
+          </li>
+          <li>
+            <strong>Resume</strong> — translator가 글 도중에 중단되면
+            (hit-limit, network, OOM), 재실행 시 이미 번역된 부분을 읽고
+            마지막으로 완전하게 기록된 단락을 찾아 그다음부터 이어갑니다.
+            중복은 기록되지 않으며 번호는 연속성을 유지합니다.
+          </li>
+          <li>
+            <strong>한도 우회</strong> — 5시간 구독 창이 닫히면
+            orchestrator가 배치를 WAITING 상태로 두고 창이 리셋될 때까지
+            대기한 뒤 이어갑니다. 주간 한도의 경우 TG 알림과 함께 리셋
+            시점까지 일시 중지합니다. 창 사이 운영자의 수동 작업은
+            필요하지 않습니다.
+          </li>
+          <li>
+            <strong>gh_deploy</strong> (<code>src/gh_deploy.py</code>) —
+            장이 닫힐 때마다 <code>main</code>으로 commit + push를
+            수행하며, GitHub Pages가 이를 받아 공개 사이트를 갱신합니다.
+            완성된 장은 번역이 진행되는 동안 차례로 사이트에 올라오며,
+            전체 코퍼스의 완료를 기다릴 필요가 없습니다.
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>피드백</h2>
+        <p>
+          이 배포 메커니즘은 아직 다른 사용자의 머신과 손에서 충분히
+          검증되지 않았기에, 이를 사용하기로 결심하고 자체 코퍼스에 대한
+          설치와 적응 과정을 스스로 거쳐 보실 첫 번째 자원자분들께
+          깊이 감사드리며, 발견된 거친 부분, 누락된 설명, 혹은 지침의
+          명백한 오류에 대한 피드백을 환영합니다 —
+          <a href="mailto:imyavel@gmail.com">imyavel@gmail.com</a>로
+          연락 주십시오.
+        </p>
+        <p>
+          소스, RUN_ME, 그리고 issues는
+          <a href="https://github.com/imyavel/zohar-translator">github.com/imyavel/zohar-translator</a>에
+          있습니다. 라이선스: 코드와 문서는 MIT; 조하르 참조 번역은
+          CC BY 4.0입니다.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT License ·
+        <a href="https://github.com/imyavel/zohar-translator">GitHub</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

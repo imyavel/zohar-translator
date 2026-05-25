@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zohar-translator — uzun biçimli LLM çeviri sistemi</title>
+  <meta name="description" content="Uzun biçimli LLM çevirisi için açık kaynaklı orkestratör. Parçalar, gruplar, abonelik limitlerini aşma, GitHub Pages'e otomatik yayınlama.">
+  <link rel="stylesheet" href="../style.css">
+  <script src="../lang.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="lang-switcher" aria-label="Dil seçimi">
+        <a href="../ru/" data-lang="ru">Русский</a>
+        <a href="../en/" data-lang="en">English</a>
+        <a href="../zh/" data-lang="zh">中文</a>
+        <a href="../es/" data-lang="es">Español</a>
+        <a href="../pt/" data-lang="pt">Português</a>
+        <a href="../ja/" data-lang="ja">日本語</a>
+        <a href="../de/" data-lang="de">Deutsch</a>
+        <a href="../ko/" data-lang="ko">한국어</a>
+        <a href="../fr/" data-lang="fr">Français</a>
+        <a href="../it/" data-lang="it">Italiano</a>
+        <span class="current" aria-current="page">Türkçe</span>
+        <a href="../lt/" data-lang="lt">Lietuvių</a>
+        <a href="../he/" data-lang="he">עברית</a>
+      </nav>
+      <h1>zohar-translator</h1>
+      <p class="tagline">
+        Uzun biçimli LLM çeviri sistemi: on binlerce paragraf, abonelik
+        limitlerini aşma, otomatik yayınlama. Kurulum
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a>
+        üzerinden yapılır; bu dosyayı operatörün LLM ajanı okur.
+      </p>
+    </header>
+
+    <main>
+      <section id="what">
+        <h2>Bu nedir ve neden var</h2>
+        <p>
+          Zohar Kitabı üzerine yazılmış 1700 sayfalık «Peruş ha-Sulam»
+          şerhini İbranice ve Aramiceden Rusçaya, yalnızca kendi Claude
+          aboneliğinin sınırları dahilinde çevirmenin mümkün olduğu ortaya
+          çıktı. <code>zohar-translator</code>, böyle bir çeviriyi yürüten
+          ve artık herhangi bir uzun külliyat ve herhangi bir dil çifti
+          ile çalışan o sistemin çekirdeğidir.
+        </p>
+        <p>
+          Girdi: bir metin kataloğu (bölümler → makaleler → paragraflar)
+          ve bir Claude aboneliği. Çıktı: çevrilmiş külliyatı, sürekli
+          paragraf numaralandırmasını, bölümleri ve dipnotları içeren
+          statik bir site. Bu ikisinin arasında orchestrator yer alır:
+          makaleleri karakter bütçesine göre parçalara böler, translator
+          ajanlarını paralel olarak çalıştırır, 5 saatlik ve haftalık
+          abonelik pencerelerini atlatır ve her bölüm tamamlandıkça
+          sonucu GitHub Pages'e işler.
+        </p>
+        <p>
+          Çalışan bir referans olarak Zohar Kitabı'nın çevirimiz:
+          <a href="http://imyavel.github.io/zohar-sulam/">imyavel.github.io/zohar-sulam</a>
+          (CC BY 4.0 lisansı, sitede belirtilmiştir). Kaputun altında
+          tam olarak sizin de kendi sisteminizde dağıtabileceğiniz aynı
+          paket bulunur.
+        </p>
+        <p>
+          Sistemi kendi külliyatınız için dağıtmak için operatör Claude
+          Code'u kurar ve ona «<code>RUN_ME.md</code> dosyasını oku ve
+          beni adım adım yönlendir» der. Bundan sonra LLM ajan operatörü
+          8 uyarlama aşaması boyunca götürür; teknik altyapı bilgisi
+          gerekmez.
+        </p>
+      </section>
+
+      <section id="stages">
+        <h2>Dağıtım aşamaları</h2>
+        <p>
+          Her aşama kendi <code>stages/NN_*.md</code> dosyasında anlatılır.
+          Operatörün LLM ajanı bunları sırayla yükler, operatöre
+          «(Q N / NN: …)» biçiminde sorular sorar ve yanıtları
+          <code>progress.json</code> içine kaydeder — bu sayede oturum
+          herhangi bir noktada kesilebilir ve yeni bir oturumdan aynı
+          yerden devam edilebilir.
+        </p>
+        <ol class="stages">
+          <li>
+            <strong>Environment</strong>
+            Python bağımlılıklarının kurulumu ve stok GUI'nin
+            başlatılabildiğinin doğrulanması. Bu yapılmadan sonraki
+            aşamaların anlamı yoktur.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/01_setup.md">stages/01_setup.md →</a>
+          </li>
+          <li>
+            <strong>Source loader</strong>
+            Külliyatın nereden yükleneceği. Sefaria üzerindeki metinler
+            için hazır fast-path: <code>reference/source_loader/download_sefaria.py</code>.
+            Kendi kaynağınız için operatör aynı biçimde (bölümlere göre
+            gruplanmış JSON paragraflar) bir yükleyici yazar.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/02_source_loader.md">stages/02_source_loader.md →</a>
+          </li>
+          <li>
+            <strong>Text structure</strong>
+            Chunking birimleri: neyin «makale» (çeviri birimi) sayılacağı
+            ve paragrafların karakter bütçesine göre nasıl parçalara
+            bölüneceği. Zohar için: bölümler → makaleler → Sulam
+            paragrafları; başka bir külliyat için benzer üç seviyeli
+            hiyerarşi.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/03_text_structure.md">stages/03_text_structure.md →</a>
+          </li>
+          <li>
+            <strong>Glossary</strong>
+            Terimler sözlüğü. Başlangıç noktası olarak Zohar sözlüğümüzü
+            alabilirsiniz (aynı Zohar'ı çevirmek için), ya da yalnızca
+            dosya yapısını ve metodolojiyi alabilirsiniz (translator
+            ajan, sözlüğe tüm içeriği belleğe yüklenerek değil, bir
+            CLI aracı üzerinden erişir).
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/04_glossary.md">stages/04_glossary.md →</a>
+          </li>
+          <li>
+            <strong>Prompt template</strong>
+            Çeviri üslubu (lafzi / edebi / karışık), biçimlendirme
+            kuralları, «yaratıcı» pasajların çevirmen dipnotlarıyla
+            nasıl işaretleneceği. <code>templates/translation_prompt.md</code>
+            içindeki şablon, LLM ajan tarafından operatörün tercihlerine
+            göre uyarlanır.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/05_prompt.md">stages/05_prompt.md →</a>
+          </li>
+          <li>
+            <strong>Publish target</strong>
+            Sonucun nereye yayınlanacağı: şablonumuz üzerinden GitHub
+            Pages (<code>src/gh_deploy.py</code> aracılığıyla
+            otomatik dağıtım), kendi kanalınız (S3 / GitLab / kendi
+            sunucunuz) veya yayınlama olmadan yalnızca yerel.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/06_publish.md">stages/06_publish.md →</a>
+          </li>
+          <li>
+            <strong>Smoke run</strong>
+            Sentetik mini bir külliyat üzerinde kısa, uçtan uca bir
+            koşu: tüm pipeline'ın (chunking → translator → resume →
+            commit) uyarlanmış sistemde dakikalar içinde çalıştığını,
+            gerçek aboneliği tam külliyatta tüketmeden doğrular.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/07_smoke.md">stages/07_smoke.md →</a>
+          </li>
+          <li>
+            <strong>Hand-off</strong>
+            Operatör, GUI'yi tam külliyat üzerinde başlatır ve Telegram
+            botu üzerinden izler. Bu noktadan itibaren dağıtım LLM ajanı
+            sahneden çekilir; sistem kendi başına çalışır.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/08_handoff.md">stages/08_handoff.md →</a>
+          </li>
+        </ol>
+      </section>
+
+      <section id="architecture">
+        <h2>Çevirmen mimarisi (GUI + Telegram)</h2>
+        <p>
+          Ayrıntılı açıklama
+          <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+          dosyasında (9 bölüm: orchestrator FSM'i, paralellik, limit
+          aşımı, chunking+resume, gh_deploy, genişleme noktaları,
+          recovery script'leri). Burada yalnızca en önemli unsurlar.
+        </p>
+        <ul class="arch">
+          <li>
+            <strong>GUI</strong> (<code>src/gui.pyw</code>) — batch
+            kuyruğunu, makale durumlarını, chunking bütçesini ve
+            başlat/durdur düğmelerini barındıran ana pencere. Operatörün
+            giriş noktasıdır.
+          </li>
+          <li>
+            <strong>Telegram botu</strong> (<code>src/bot.py</code>) —
+            bölüm tamamlanma, hit-limit (5h), haftalık limit ve hata
+            bildirimleri. Devam ettirme ve durum kontrolü için komutlar.
+            İsteğe bağlıdır (<code>--no-bot</code> ile başlatılır).
+          </li>
+          <li>
+            <strong>Orchestrator</strong> (<code>src/orchestrator.py</code>) —
+            PREPARING → RUNNING → COMPLETED / HIT_LIMIT / WEEKLY_LIMIT
+            / FAILED durumlarına sahip bir FSM. Yeniden denemeleri
+            yönetir, çökme sonrası durumu yeniden kurar, translator
+            ajanlarının paralelliğini idare eder.
+          </li>
+          <li>
+            <strong>Chunking</strong> — paragraflar, kaynak metnin
+            karakter bütçesine göre parçalara gruplanır (varsayılan
+            ~7500). Bir paragraf asla ortasından bölünmez; büyük bir
+            paragraf bütünlüğünü koruyarak kendi başına bir parça olur.
+          </li>
+          <li>
+            <strong>Resume</strong> — translator bir makalenin ortasında
+            düşerse (hit-limit, ağ, OOM), sonraki çalıştırma çevrilen
+            kısmı okur, tam olarak yazılmış son paragrafı bulur ve bir
+            sonrakinden devam eder. Mükerrer kayıt yazılmaz, numaralandırma
+            sürekli kalır.
+          </li>
+          <li>
+            <strong>Limit aşımı</strong> — 5 saatlik abonelik penceresinde
+            orchestrator batch'i WAITING durumuna alır, pencerenin
+            sonuna kadar uyur ve devam eder. Haftalık limitte sıfırlanmaya
+            kadar duraklar ve TG bildirimi gönderir. Pencereler arasında
+            operatörün herhangi bir el işine ihtiyaç yoktur.
+          </li>
+          <li>
+            <strong>gh_deploy</strong> (<code>src/gh_deploy.py</code>) —
+            tamamlanan her bölümden sonra <code>main</code> dalına
+            commit + push yapılır; GitHub Pages bunu alır ve kamuya
+            açık siteyi günceller. Tamamlanan bölümler, tüm külliyatın
+            bitmesini beklemeden çeviri ilerledikçe sitede görünür.
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>Geri bildirim</h2>
+        <p>
+          Bu dağıtım mekanizması başka makinelerde ve başka ellerde henüz
+          yeterince denenmediği için, bunu kullanmaya ve kurulum ile
+          kendi külliyatına uyarlama sürecini bağımsız olarak baştan
+          sona geçmeye karar veren ilk gönüllülere; rastlanan
+          pürüzler, eksik kalmış noktalar veya talimatlardaki doğrudan
+          hatalar üzerine geri bildirimleri için minnettar olacağım —
+          bana
+          <a href="mailto:imyavel@gmail.com">imyavel@gmail.com</a>
+          adresinden ulaşabilirsiniz.
+        </p>
+        <p>
+          Kaynak kod, RUN_ME ve issue'lar şu adreste:
+          <a href="https://github.com/imyavel/zohar-translator">github.com/imyavel/zohar-translator</a>.
+          Lisans: kod ve dokümantasyon için MIT; Zohar referans çevirisi
+          için CC BY 4.0.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT License ·
+        <a href="https://github.com/imyavel/zohar-translator">GitHub</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

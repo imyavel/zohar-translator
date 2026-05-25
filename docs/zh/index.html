@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zohar-translator —— 长篇 LLM 翻译系统</title>
+  <meta name="description" content="开源的长篇 LLM 翻译编排器。分块、批处理、绕开订阅额度限制、自动发布到 GitHub Pages。">
+  <link rel="stylesheet" href="../style.css">
+  <script src="../lang.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="lang-switcher" aria-label="语言选择">
+        <a href="../ru/" data-lang="ru">Русский</a>
+        <a href="../en/" data-lang="en">English</a>
+        <span class="current" aria-current="page">中文</span>
+        <a href="../es/" data-lang="es">Español</a>
+        <a href="../pt/" data-lang="pt">Português</a>
+        <a href="../ja/" data-lang="ja">日本語</a>
+        <a href="../de/" data-lang="de">Deutsch</a>
+        <a href="../ko/" data-lang="ko">한국어</a>
+        <a href="../fr/" data-lang="fr">Français</a>
+        <a href="../it/" data-lang="it">Italiano</a>
+        <a href="../tr/" data-lang="tr">Türkçe</a>
+        <a href="../lt/" data-lang="lt">Lietuvių</a>
+        <a href="../he/" data-lang="he">עברית</a>
+      </nav>
+      <h1>zohar-translator</h1>
+      <p class="tagline">
+        长篇 LLM 翻译系统:数万段落、绕开订阅额度限制、自动发布。部署流程通过
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a>
+        进行,由操作员的 LLM 代理读取该文件并引导整个过程。
+      </p>
+    </header>
+
+    <main>
+      <section id="what">
+        <h2>这是什么,为什么需要它</h2>
+        <p>
+          把 1700 页的《佐哈尔》注释《佩鲁什·哈苏拉姆》从希伯来语和阿拉米语
+          译成俄语,且仅依赖一个人自己的 Claude 订阅 —— 事实证明这是可行的。
+          <code>zohar-translator</code> 正是完成这项翻译的那套系统的核心,
+          如今它已能处理任意语言对的任意长篇语料。
+        </p>
+        <p>
+          输入端是一份文本目录(章 → 文 → 段)和一个 Claude 订阅。
+          输出端是一个静态网站,包含已翻译的语料、贯通的段落编号、
+          章节结构以及脚注。中间则是 orchestrator:它按字符预算把文章
+          切分成 chunk,并行驱动 translator 代理,绕开 5 小时和每周的
+          订阅窗口,并在每章完成时把结果提交到 GitHub Pages。
+        </p>
+        <p>
+          一个可用的参考实例就是我们对《佐哈尔》的翻译:
+          <a href="http://imyavel.github.io/zohar-sulam/">imyavel.github.io/zohar-sulam</a>
+          (采用 CC BY 4.0 许可,详见网站)。其底层运行的正是您可以自行部署的
+          同一套组件。
+        </p>
+        <p>
+          要为自己的语料部署这套系统,操作员只需安装 Claude Code,
+          并对它说「读一下 <code>RUN_ME.md</code>,然后一步步引导我」。
+          接下来,LLM 代理会带领操作员完成 8 个适配阶段;无需任何技术背景。
+        </p>
+      </section>
+
+      <section id="stages">
+        <h2>部署阶段</h2>
+        <p>
+          每个阶段都对应一个独立的文件 <code>stages/NN_*.md</code>。
+          操作员的 LLM 代理依次加载它们,以「(Q N of NN: …)」的形式向操作员
+          提问,并将答案记录到 <code>progress.json</code> 中 —— 这样会话
+          可以在任何时刻中断,并在新的会话中从同一位置继续。
+        </p>
+        <ol class="stages">
+          <li>
+            <strong>Environment</strong>
+            安装 Python 依赖,并验证原始 GUI 能够启动。
+            少了这一步,后续阶段就无从谈起。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/01_setup.md">stages/01_setup.md →</a>
+          </li>
+          <li>
+            <strong>Source loader</strong>
+            语料从何处加载。对于 Sefaria 上的文本,提供了通过
+            <code>reference/source_loader/download_sefaria.py</code> 的现成
+            快速通道。若使用自己的来源,操作员需按照相同格式
+            (按章组织的 JSON 段落)编写一个加载器。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/02_source_loader.md">stages/02_source_loader.md →</a>
+          </li>
+          <li>
+            <strong>Text structure</strong>
+            chunking 的基本单位:什么算一篇「文章」(翻译单元),
+            以及段落如何按字符预算切分为 chunk。对于《佐哈尔》:
+            章 → 文 → 苏拉姆段落;对于其他语料,则建立类似的三级层次结构。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/03_text_structure.md">stages/03_text_structure.md →</a>
+          </li>
+          <li>
+            <strong>Glossary</strong>
+            术语词表。您可以把我们的《佐哈尔》词表作为起点
+            (用于翻译《佐哈尔》本身),也可以只沿用文件结构和方法论
+            (translator 代理通过一个 CLI 工具与词表交互,而不是把整份
+            词表都加载进来)。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/04_glossary.md">stages/04_glossary.md →</a>
+          </li>
+          <li>
+            <strong>Prompt template</strong>
+            翻译风格(直译 / 意译 / 混合)、排版规则,以及如何用
+            译者脚注标注「创造性处理」之处。
+            <code>templates/translation_prompt.md</code> 中的模板会由
+            LLM 代理根据操作员的选择进行适配。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/05_prompt.md">stages/05_prompt.md →</a>
+          </li>
+          <li>
+            <strong>Publish target</strong>
+            结果发布到何处:按我们的模板发布到 GitHub Pages
+            (通过 <code>src/gh_deploy.py</code> 自动部署)、发布到自己的
+            渠道(S3 / GitLab / 自有服务器),或仅在本地保留而不对外发布。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/06_publish.md">stages/06_publish.md →</a>
+          </li>
+          <li>
+            <strong>Smoke run</strong>
+            在一个合成的小型语料上跑一次端到端的简短流程:验证整条
+            pipeline(chunking → translator → resume → commit)在已适配
+            的系统上能在数分钟内跑通,而不会在完整语料上消耗真实的订阅额度。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/07_smoke.md">stages/07_smoke.md →</a>
+          </li>
+          <li>
+            <strong>Hand-off</strong>
+            操作员在完整语料上启动 GUI,并通过 Telegram 机器人监控。
+            从这一刻起,负责部署的 LLM 代理就此告退,系统自行运转。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/08_handoff.md">stages/08_handoff.md →</a>
+          </li>
+        </ol>
+      </section>
+
+      <section id="architecture">
+        <h2>翻译器结构(GUI + Telegram)</h2>
+        <p>
+          详细说明见
+          <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+          (共 9 节:orchestrator 的 FSM、并行机制、额度绕行、
+          chunking+resume、gh_deploy、扩展点、recovery 脚本)。
+          这里只列要点。
+        </p>
+        <ul class="arch">
+          <li>
+            <strong>GUI</strong>(<code>src/gui.pyw</code>)—— 主窗口,
+            包含 batch 队列、文章状态、chunking 预算以及启动/停止按钮。
+            这是操作员的入口。
+          </li>
+          <li>
+            <strong>Telegram 机器人</strong>(<code>src/bot.py</code>)——
+            负责章节完成、hit-limit(5h)、weekly-limit 及错误的通知。
+            提供恢复运行和状态查询的命令。可选组件
+            (使用 <code>--no-bot</code> 启动即可关闭)。
+          </li>
+          <li>
+            <strong>Orchestrator</strong>(<code>src/orchestrator.py</code>)
+            —— 一个 FSM,状态为 PREPARING → RUNNING → COMPLETED /
+            HIT_LIMIT / WEEKLY_LIMIT / FAILED。负责处理重试、在崩溃后
+            恢复状态,并管理 translator 代理之间的并行。
+          </li>
+          <li>
+            <strong>Chunking</strong> —— 段落按源文本的字符预算
+            (默认约 7500)被组合成 chunk。段落绝不会从中间被截断;
+            过长的段落会单独构成一个完整的 chunk。
+          </li>
+          <li>
+            <strong>Resume</strong> —— 若 translator 在文章中途中断
+            (hit-limit、网络、OOM),再次运行时会读取已翻译的部分,
+            找到最后一个完整写入的段落,并从下一个段落继续。
+            不会写入重复内容,编号保持贯通。
+          </li>
+          <li>
+            <strong>额度绕行</strong> —— 遇到 5 小时订阅窗口时,
+            orchestrator 把 batch 置为 WAITING,休眠至窗口结束后继续。
+            遇到每周限额时 —— 暂停至重置,并通过 TG 发送通知。
+            两次窗口之间无需操作员做任何手动干预。
+          </li>
+          <li>
+            <strong>gh_deploy</strong>(<code>src/gh_deploy.py</code>)
+            —— 每一章完成后,执行一次 commit + push 到 <code>main</code>;
+            GitHub Pages 自动拾取并刷新公开网站。已完成的章节会随着翻译
+            进度陆续出现在网站上,无需等待整部语料译完。
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>反馈</h2>
+        <p>
+          鉴于这套部署机制尚未在他人的机器和他人的手中真正磨合过,
+          对于率先愿意自行使用它、独立完成安装并把它适配到自己语料的
+          志愿者,如果您能就发现的粗糙之处、表述含糊或文档中直接的
+          错误反馈给我,我将不胜感激 —— 请写信至
+          <a href="mailto:imyavel@gmail.com">imyavel@gmail.com</a>。
+        </p>
+        <p>
+          源码、RUN_ME 与 issues 均在
+          <a href="https://github.com/imyavel/zohar-translator">github.com/imyavel/zohar-translator</a>。
+          许可证 —— 代码和文档采用 MIT;作为参考的《佐哈尔》译本采用
+          CC BY 4.0。
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT License ·
+        <a href="https://github.com/imyavel/zohar-translator">GitHub</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

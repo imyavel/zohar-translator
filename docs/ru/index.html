@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zohar-translator — система длинного LLM-перевода</title>
+  <meta name="description" content="Open-source оркестратор длинного LLM-перевода. Чанки, батчи, обход лимитов подписки, авто-публикация в GitHub Pages.">
+  <link rel="stylesheet" href="../style.css">
+  <script src="../lang.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="lang-switcher" aria-label="Выбор языка">
+        <span class="current" aria-current="page">Русский</span>
+        <a href="../en/" data-lang="en">English</a>
+        <a href="../zh/" data-lang="zh">中文</a>
+        <a href="../es/" data-lang="es">Español</a>
+        <a href="../pt/" data-lang="pt">Português</a>
+        <a href="../ja/" data-lang="ja">日本語</a>
+        <a href="../de/" data-lang="de">Deutsch</a>
+        <a href="../ko/" data-lang="ko">한국어</a>
+        <a href="../fr/" data-lang="fr">Français</a>
+        <a href="../it/" data-lang="it">Italiano</a>
+        <a href="../tr/" data-lang="tr">Türkçe</a>
+        <a href="../lt/" data-lang="lt">Lietuvių</a>
+        <a href="../he/" data-lang="he">עברית</a>
+      </nav>
+      <h1>zohar-translator</h1>
+      <p class="tagline">
+        Система длинного LLM-перевода: десятки тысяч параграфов, обход лимитов
+        подписки, авто-публикация. Развёртывание — через
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a>,
+        которое читает LLM-агент оператора.
+      </p>
+    </header>
+
+    <main>
+      <section id="what">
+        <h2>Что это и зачем нужно</h2>
+        <p>
+          Перевести 1700-страничный комментарий «Перуш ха-Сулам» к Книге Зоар
+          с иврита и арамита на русский, упираясь только в свою подписку
+          Claude — оказалось возможным. <code>zohar-translator</code> — это
+          ядро той самой системы, которая выполняет такой перевод и которая
+          теперь работает с любым длинным корпусом на любой языковой паре.
+        </p>
+        <p>
+          На вход — каталог текста (главы → статьи → параграфы) и подписка
+          на Claude. На выходе — статический сайт с переведённым корпусом,
+          сквозной нумерацией параграфов, главами и сносками. Между ними —
+          orchestrator, который режет статьи на чанки по бюджету символов,
+          гонит translator-агентов параллельно, обходит 5-часовые и
+          недельные окна подписки, коммитит результат в GitHub Pages
+          по мере закрытия глав.
+        </p>
+        <p>
+          Готовый референс — наш перевод Книги Зоар:
+          <a href="http://imyavel.github.io/zohar-sulam/">imyavel.github.io/zohar-sulam</a>
+          (лицензия CC BY 4.0, указана на сайте). Под капотом — ровно та
+          связка, которую вы можете развернуть у себя.
+        </p>
+        <p>
+          Чтобы развернуть систему под свой корпус, оператор устанавливает
+          Claude Code и говорит ему «прочитай <code>RUN_ME.md</code> и
+          пошагово веди меня». Дальше LLM-агент проведёт через 8 стадий
+          адаптации; технического опыта не требуется.
+        </p>
+      </section>
+
+      <section id="stages">
+        <h2>Этапы развёртывания</h2>
+        <p>
+          Каждая стадия описана в отдельном файле <code>stages/NN_*.md</code>.
+          LLM-агент оператора подгружает их по очереди, задаёт оператору
+          вопросы вида «(Q N из NN: …)» и фиксирует ответы в
+          <code>progress.json</code> — это позволяет в любой момент прервать
+          сессию и продолжить с того же места из новой.
+        </p>
+        <ol class="stages">
+          <li>
+            <strong>Environment</strong>
+            Установка Python-зависимостей, проверка, что стоковый GUI
+            запускается. Без этого следующие стадии бессмысленны.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/01_setup.md">stages/01_setup.md →</a>
+          </li>
+          <li>
+            <strong>Source loader</strong>
+            Откуда грузить корпус. Для текстов из Sefaria — готовый
+            fast-path через <code>reference/source_loader/download_sefaria.py</code>.
+            Для своего источника — оператор пишет загрузчик в том же
+            формате (JSON-параграфы по главам).
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/02_source_loader.md">stages/02_source_loader.md →</a>
+          </li>
+          <li>
+            <strong>Text structure</strong>
+            Единицы чанкования: что становится «статьёй» (единицей перевода)
+            и как параграфы режутся на чанки по бюджету символов. Для Зоара —
+            главы → статьи → параграфы Сулама; для другого корпуса —
+            аналогичная трёхуровневая иерархия.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/03_text_structure.md">stages/03_text_structure.md →</a>
+          </li>
+          <li>
+            <strong>Glossary</strong>
+            Словарь терминов. Можно взять наш Зоар-словарь как стартовую
+            точку (для перевода того же Зоара), либо взять только структуру
+            файла и методологию (translator-агент работает со словарём
+            через CLI-инструмент, а не загружается всем содержимым).
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/04_glossary.md">stages/04_glossary.md →</a>
+          </li>
+          <li>
+            <strong>Prompt template</strong>
+            Стиль перевода (буквальный / литературный / смешанный),
+            правила оформления, как помечать «творческие» места сносками
+            переводчика. Шаблон в <code>templates/translation_prompt.md</code>
+            адаптируется LLM-агентом под выбор оператора.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/05_prompt.md">stages/05_prompt.md →</a>
+          </li>
+          <li>
+            <strong>Publish target</strong>
+            Куда публикуется результат: GitHub Pages по нашему шаблону
+            (авто-деплой через <code>src/gh_deploy.py</code>), свой канал
+            (S3 / GitLab / собственный сервер) или только локально без
+            публикации.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/06_publish.md">stages/06_publish.md →</a>
+          </li>
+          <li>
+            <strong>Smoke run</strong>
+            Короткий прогон end-to-end на синтетическом мини-корпусе:
+            проверяет, что весь pipeline (chunking → translator → resume →
+            commit) работает на адаптированной системе за минуты, без
+            расхода реальной подписки на полный корпус.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/07_smoke.md">stages/07_smoke.md →</a>
+          </li>
+          <li>
+            <strong>Hand-off</strong>
+            Оператор запускает GUI на полном корпусе и мониторит через
+            Telegram-бот. С этого момента LLM-агент развёртывания уходит,
+            дальше работает сама система.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/08_handoff.md">stages/08_handoff.md →</a>
+          </li>
+        </ol>
+      </section>
+
+      <section id="architecture">
+        <h2>Структура переводчика (GUI + Telegram)</h2>
+        <p>
+          Подробное описание — в
+          <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+          (9 разделов: FSM оркестратора, параллелизм, обход лимитов,
+          chunking+resume, gh_deploy, точки расширения, recovery-скрипты).
+          Здесь — самое важное.
+        </p>
+        <ul class="arch">
+          <li>
+            <strong>GUI</strong> (<code>src/gui.pyw</code>) — главное окно
+            с очередью батчей, статусами статей, бюджетом chunking,
+            кнопками старт/стоп. Это операторская точка входа.
+          </li>
+          <li>
+            <strong>Telegram-бот</strong> (<code>src/bot.py</code>) —
+            нотификации о закрытии глав, hit-limit (5h), weekly-limit,
+            ошибках. Команды на возобновление и проверку статуса. Опционален
+            (запуск с <code>--no-bot</code>).
+          </li>
+          <li>
+            <strong>Orchestrator</strong> (<code>src/orchestrator.py</code>) —
+            FSM с состояниями PREPARING → RUNNING → COMPLETED / HIT_LIMIT
+            / WEEKLY_LIMIT / FAILED. Разруливает повторы, восстанавливает
+            состояние после падений, рулит параллелизмом translator-агентов.
+          </li>
+          <li>
+            <strong>Chunking</strong> — параграфы группируются в чанки по
+            бюджету символов исходного текста (по умолчанию ~7500). Параграф
+            никогда не режется посередине; крупный параграф становится
+            собственным чанком целиком.
+          </li>
+          <li>
+            <strong>Resume</strong> — если translator упал посреди статьи
+            (hit-limit, network, OOM), повторный запуск читает уже
+            переведённую часть, находит последний полностью записанный
+            параграф и продолжает с следующего. Дубликаты не пишутся,
+            нумерация остаётся сквозной.
+          </li>
+          <li>
+            <strong>Обход лимитов</strong> — на 5-часовое окно подписки
+            orchestrator ставит батч в WAITING, спит до конца окна,
+            продолжает. На недельный лимит — пауза до сброса с TG-нотификацией.
+            Никакой ручной работы оператора между окнами не нужно.
+          </li>
+          <li>
+            <strong>gh_deploy</strong> (<code>src/gh_deploy.py</code>) —
+            после каждой закрытой главы делает commit + push в <code>main</code>;
+            GitHub Pages подхватывает и обновляет публичный сайт. Готовые
+            главы появляются на сайте по ходу перевода, не нужно ждать
+            конца всего корпуса.
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>Обратная связь</h2>
+        <p>
+          Поскольку сам этот развёрточный механизм ещё не обкатан на
+          чужих машинах и в чужих руках, первым добровольцам, решившим
+          воспользоваться им и пройти процесс установки и адаптации
+          к своему корпусу самостоятельно, я буду благодарен за обратную
+          связь по обнаруженным шероховатостям, недосказанностям или
+          прямым ошибкам в инструкции — пишите мне
+          <a href="mailto:imyavel@gmail.com">imyavel@gmail.com</a>.
+        </p>
+        <p>
+          Исходники, RUN_ME и issues — на
+          <a href="https://github.com/imyavel/zohar-translator">github.com/imyavel/zohar-translator</a>.
+          Лицензия — MIT для кода и документации; перевод-референс Зоара —
+          CC BY 4.0.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT License ·
+        <a href="https://github.com/imyavel/zohar-translator">GitHub</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

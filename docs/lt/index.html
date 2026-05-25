@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zohar-translator — ilgos formos LLM vertimo sistema</title>
+  <meta name="description" content="Atvirojo kodo orchestratorius ilgos formos LLM vertimui. Skaidiniai, paketai, prenumeratos limitų apėjimas, automatinis publikavimas į GitHub Pages.">
+  <link rel="stylesheet" href="../style.css">
+  <script src="../lang.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="lang-switcher" aria-label="Kalbos pasirinkimas">
+        <a href="../ru/" data-lang="ru">Русский</a>
+        <a href="../en/" data-lang="en">English</a>
+        <a href="../zh/" data-lang="zh">中文</a>
+        <a href="../es/" data-lang="es">Español</a>
+        <a href="../pt/" data-lang="pt">Português</a>
+        <a href="../ja/" data-lang="ja">日本語</a>
+        <a href="../de/" data-lang="de">Deutsch</a>
+        <a href="../ko/" data-lang="ko">한국어</a>
+        <a href="../fr/" data-lang="fr">Français</a>
+        <a href="../it/" data-lang="it">Italiano</a>
+        <a href="../tr/" data-lang="tr">Türkçe</a>
+        <span class="current" aria-current="page">Lietuvių</span>
+        <a href="../he/" data-lang="he">עברית</a>
+      </nav>
+      <h1>zohar-translator</h1>
+      <p class="tagline">
+        Ilgos formos LLM vertimo sistema: dešimtys tūkstančių pastraipų,
+        prenumeratos limitų apėjimas, automatinis publikavimas. Diegimas vyksta per
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a>,
+        kurį skaito operatoriaus LLM agentas.
+      </p>
+    </header>
+
+    <main>
+      <section id="what">
+        <h2>Kas tai ir kam to reikia</h2>
+        <p>
+          Išversti 1700 puslapių komentarą „Perušas ha-Sulamas“ Zoharo knygai
+          iš hebrajų ir aramėjų į rusų kalbą, remiantis tik nuosava Claude
+          prenumerata — pasirodė įmanoma. <code>zohar-translator</code> yra
+          būtent tos sistemos branduolys, kuris atlieka tokį vertimą ir kuris
+          dabar veikia su bet kokiu ilgu korpusu ir bet kokia kalbų pora.
+        </p>
+        <p>
+          Įvestis — teksto katalogas (skyriai → straipsniai → pastraipos) ir
+          Claude prenumerata. Išvestis — statinė svetainė su išverstu korpusu,
+          ištisine pastraipų numeracija, skyriais ir išnašomis. Tarp jų sėdi
+          orchestrator: jis pjausto straipsnius į skaidinius pagal simbolių
+          biudžetą, lygiagrečiai vykdo translator agentus, apeina 5 valandų
+          ir savaitės prenumeratos langus bei komituoja rezultatą į GitHub
+          Pages, kai užbaigiamas kiekvienas skyrius.
+        </p>
+        <p>
+          Veikiantis pavyzdys — mūsų Zoharo knygos vertimas:
+          <a href="http://imyavel.github.io/zohar-sulam/">imyavel.github.io/zohar-sulam</a>
+          (CC BY 4.0 licencija, nurodyta svetainėje). Po gaubtu — būtent ta
+          sąranka, kurią galite įdiegti pas save.
+        </p>
+        <p>
+          Norėdamas pritaikyti sistemą savo korpusui, operatorius įdiegia
+          Claude Code ir jam sako: „perskaityk <code>RUN_ME.md</code> ir vesk
+          mane žingsnis po žingsnio“. Toliau LLM agentas perves per 8
+          pritaikymo etapus; techninės patirties nereikia.
+        </p>
+      </section>
+
+      <section id="stages">
+        <h2>Diegimo etapai</h2>
+        <p>
+          Kiekvienas etapas aprašytas atskirame faile <code>stages/NN_*.md</code>.
+          Operatoriaus LLM agentas užkrauna juos vieną po kito, užduoda
+          operatoriui klausimus formoje „(Q N iš NN: …)“ ir fiksuoja atsakymus
+          <code>progress.json</code> faile — tai leidžia bet kuriuo metu
+          nutraukti sesiją ir tęsti nuo tos pačios vietos naujoje.
+        </p>
+        <ol class="stages">
+          <li>
+            <strong>Environment</strong>
+            Python priklausomybių diegimas ir patikrinimas, kad standartinis
+            GUI sėkmingai paleidžiamas. Be to kiti etapai neturi prasmės.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/01_setup.md">stages/01_setup.md →</a>
+          </li>
+          <li>
+            <strong>Source loader</strong>
+            Iš kur kraunamas korpusas. Sefaria tekstams — paruoštas fast-path
+            per <code>reference/source_loader/download_sefaria.py</code>.
+            Savam šaltiniui operatorius parašo įkroviklį tuo pačiu formatu
+            (JSON pastraipos sugrupuotos pagal skyrius).
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/02_source_loader.md">stages/02_source_loader.md →</a>
+          </li>
+          <li>
+            <strong>Text structure</strong>
+            Skaidymo vienetai: kas tampa „straipsniu“ (vertimo vienetu) ir kaip
+            pastraipos pjaustomos į skaidinius pagal simbolių biudžetą. Zoharui —
+            skyriai → straipsniai → Sulamo pastraipos; kitam korpusui —
+            analogiška trijų lygių hierarchija.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/03_text_structure.md">stages/03_text_structure.md →</a>
+          </li>
+          <li>
+            <strong>Glossary</strong>
+            Terminų žodynas. Galima paimti mūsų Zoharo žodyną kaip pradinį
+            tašką (jei verčiate patį Zoharą), arba paimti tik failo struktūrą
+            ir metodologiją (translator agentas dirba su žodynu per CLI įrankį,
+            o ne užkraunamas su visu jo turiniu).
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/04_glossary.md">stages/04_glossary.md →</a>
+          </li>
+          <li>
+            <strong>Prompt template</strong>
+            Vertimo stilius (pažodinis / literatūrinis / mišrus), formatavimo
+            taisyklės, kaip žymėti „kūrybines“ vietas vertėjo išnašomis.
+            Šabloną <code>templates/translation_prompt.md</code> LLM agentas
+            pritaiko pagal operatoriaus pasirinkimus.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/05_prompt.md">stages/05_prompt.md →</a>
+          </li>
+          <li>
+            <strong>Publish target</strong>
+            Kur publikuojamas rezultatas: GitHub Pages pagal mūsų šabloną
+            (automatinis diegimas per <code>src/gh_deploy.py</code>), nuosavas
+            kanalas (S3 / GitLab / savas serveris) arba tik lokaliai, be
+            publikavimo.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/06_publish.md">stages/06_publish.md →</a>
+          </li>
+          <li>
+            <strong>Smoke run</strong>
+            Trumpas end-to-end paleidimas su sintetiniu mini-korpusu: patikrina,
+            ar visas pipeline (chunking → translator → resume → commit) per
+            kelias minutes veikia pritaikytoje sistemoje, neeikvojant realios
+            prenumeratos pilnam korpusui.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/07_smoke.md">stages/07_smoke.md →</a>
+          </li>
+          <li>
+            <strong>Hand-off</strong>
+            Operatorius paleidžia GUI pilnam korpusui ir stebi jį per Telegram
+            botą. Nuo šios akimirkos diegimo LLM agentas pasišalina, toliau
+            sistema veikia pati.
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/08_handoff.md">stages/08_handoff.md →</a>
+          </li>
+        </ol>
+      </section>
+
+      <section id="architecture">
+        <h2>Vertėjo architektūra (GUI + Telegram)</h2>
+        <p>
+          Detalus aprašymas —
+          <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+          faile (9 skyriai: orkestratoriaus FSM, lygiagretumas, limitų
+          apėjimas, chunking+resume, gh_deploy, plėtimo taškai, recovery
+          skriptai). Čia — svarbiausia.
+        </p>
+        <ul class="arch">
+          <li>
+            <strong>GUI</strong> (<code>src/gui.pyw</code>) — pagrindinis
+            langas su batch'ų eile, straipsnių būsenomis, chunking biudžetu
+            ir start/stop mygtukais. Tai operatoriaus įėjimo taškas.
+          </li>
+          <li>
+            <strong>Telegram botas</strong> (<code>src/bot.py</code>) —
+            pranešimai apie skyrių užbaigimą, hit-limit (5h), weekly-limit ir
+            klaidas. Komandos tęsimui ir būsenos patikrinimui. Pasirenkamas
+            (paleidimas su <code>--no-bot</code>).
+          </li>
+          <li>
+            <strong>Orchestrator</strong> (<code>src/orchestrator.py</code>) —
+            FSM su būsenomis PREPARING → RUNNING → COMPLETED / HIT_LIMIT /
+            WEEKLY_LIMIT / FAILED. Tvarko pakartojimus, atstato būseną po
+            lūžių, valdo translator agentų lygiagretumą.
+          </li>
+          <li>
+            <strong>Chunking</strong> — pastraipos grupuojamos į skaidinius
+            pagal šaltinio teksto simbolių biudžetą (pagal nutylėjimą ~7500).
+            Pastraipa niekada nepjaunama viduryje; didelė pastraipa tampa
+            atskiru skaidiniu kaip visuma.
+          </li>
+          <li>
+            <strong>Resume</strong> — jei translator nutrūko straipsnio viduryje
+            (hit-limit, network, OOM), pakartotinis paleidimas perskaito jau
+            išverstą dalį, suranda paskutinę pilnai įrašytą pastraipą ir tęsia
+            nuo kitos. Dublikatai neįrašomi, numeracija lieka ištisinė.
+          </li>
+          <li>
+            <strong>Limitų apėjimas</strong> — atsidūrus 5 valandų prenumeratos
+            lange, orchestrator perveda batch'ą į WAITING, miega iki lango
+            atstatymo ir tęsia. Savaitės limitui — pauzė iki atstatymo su TG
+            pranešimu. Jokio rankinio operatoriaus darbo tarp langų nereikia.
+          </li>
+          <li>
+            <strong>gh_deploy</strong> (<code>src/gh_deploy.py</code>) — po
+            kiekvieno užbaigto skyriaus atlieka commit + push į <code>main</code>;
+            GitHub Pages tai pasiima ir atnaujina viešąją svetainę. Užbaigti
+            skyriai pasirodo svetainėje vertimo eigoje, nereikia laukti viso
+            korpuso pabaigos.
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>Atsiliepimai</h2>
+        <p>
+          Kadangi pats šis diegimo mechanizmas dar neišbandytas svetimose
+          mašinose ir svetimose rankose, pirmiesiems savanoriams, nutarusiems
+          juo pasinaudoti ir savarankiškai pereiti diegimo bei pritaikymo savo
+          korpusui procesą, būsiu dėkingas už atsiliepimus apie pastebėtus
+          šiurkštumus, nutylėjimus ar tiesiogines instrukcijos klaidas —
+          rašykite man
+          <a href="mailto:imyavel@gmail.com">imyavel@gmail.com</a>.
+        </p>
+        <p>
+          Šaltinio kodas, RUN_ME ir issues —
+          <a href="https://github.com/imyavel/zohar-translator">github.com/imyavel/zohar-translator</a>.
+          Licencija — MIT kodui ir dokumentacijai; Zoharo vertimas-pavyzdys —
+          CC BY 4.0.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT License ·
+        <a href="https://github.com/imyavel/zohar-translator">GitHub</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>

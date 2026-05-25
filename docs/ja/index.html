@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>zohar-translator — 長文LLM翻訳システム</title>
+  <meta name="description" content="長文LLM翻訳のためのオープンソース・オーケストレーター。チャンク、バッチ、サブスクリプション制限の回避、GitHub Pagesへの自動公開。">
+  <link rel="stylesheet" href="../style.css">
+  <script src="../lang.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <nav class="lang-switcher" aria-label="言語選択">
+        <a href="../ru/" data-lang="ru">Русский</a>
+        <a href="../en/" data-lang="en">English</a>
+        <a href="../zh/" data-lang="zh">中文</a>
+        <a href="../es/" data-lang="es">Español</a>
+        <a href="../pt/" data-lang="pt">Português</a>
+        <span class="current" aria-current="page">日本語</span>
+        <a href="../de/" data-lang="de">Deutsch</a>
+        <a href="../ko/" data-lang="ko">한국어</a>
+        <a href="../fr/" data-lang="fr">Français</a>
+        <a href="../it/" data-lang="it">Italiano</a>
+        <a href="../tr/" data-lang="tr">Türkçe</a>
+        <a href="../lt/" data-lang="lt">Lietuvių</a>
+        <a href="../he/" data-lang="he">עברית</a>
+      </nav>
+      <h1>zohar-translator</h1>
+      <p class="tagline">
+        長文LLM翻訳システム：数万段落、サブスクリプション制限の回避、
+        自動公開。デプロイは
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a>
+        を通じて行われ、これをオペレーターのLLMエージェントが読みます。
+      </p>
+    </header>
+
+    <main>
+      <section id="what">
+        <h2>これは何か、何のためにあるか</h2>
+        <p>
+          1700ページに及ぶ『ゾハル書』への注釈「ペルーシュ・ハ・スラム」を、
+          ヘブライ語およびアラム語からロシア語へ、自分のClaudeサブスクリプション
+          だけを制約として翻訳すること――それが可能であることが判明しました。
+          <code>zohar-translator</code> は、まさにその翻訳を実行したシステムの
+          中核であり、現在はあらゆる長文コーパス・あらゆる言語ペアで動作します。
+        </p>
+        <p>
+          入力はテキストカタログ（章 → 記事 → 段落）とClaudeサブスクリプション。
+          出力は翻訳済みコーパス、通し番号付きの段落、章、脚注を備えた
+          静的サイト。その間に位置するのが orchestrator で、記事を文字数
+          バジェットに従ってチャンクに分割し、translator エージェントを並列
+          実行し、5時間および週次のサブスクリプションウィンドウを回避し、
+          章が完成するごとに結果を GitHub Pages にコミットします。
+        </p>
+        <p>
+          実働するリファレンスは、私たちによる『ゾハル書』の翻訳です：
+          <a href="http://imyavel.github.io/zohar-sulam/">imyavel.github.io/zohar-sulam</a>
+          （CC BY 4.0ライセンス、サイトに明記）。その内部で動いているのは、
+          あなた自身がデプロイできるのとまったく同じ構成です。
+        </p>
+        <p>
+          自分のコーパス向けにシステムをデプロイするには、オペレーターは
+          Claude Code をインストールし、「<code>RUN_ME.md</code> を読んで、
+          段階的に私を案内してほしい」と告げます。あとはLLMエージェントが
+          8つの適応ステージを通じて導きます。技術的な経験は必要ありません。
+        </p>
+      </section>
+
+      <section id="stages">
+        <h2>デプロイのステージ</h2>
+        <p>
+          各ステージはそれぞれ独立したファイル <code>stages/NN_*.md</code>
+          に記述されています。オペレーターのLLMエージェントはそれらを順に
+          読み込み、オペレーターに「(Q N of NN: …)」形式の質問を行い、
+          回答を <code>progress.json</code> に記録します――これにより、
+          セッションをいつでも中断し、新しいセッションから同じ場所で
+          再開できます。
+        </p>
+        <ol class="stages">
+          <li>
+            <strong>Environment</strong>
+            Python依存関係のインストールと、標準のGUIが起動することの確認。
+            これがなければ以降のステージは意味を持ちません。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/01_setup.md">stages/01_setup.md →</a>
+          </li>
+          <li>
+            <strong>Source loader</strong>
+            コーパスをどこから読み込むか。Sefariaのテキストには、
+            <code>reference/source_loader/download_sefaria.py</code> による
+            既製のfast-pathが用意されています。独自のソースの場合は、
+            オペレーターが同じ形式（章ごとにグループ化されたJSON段落）で
+            ローダーを書きます。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/02_source_loader.md">stages/02_source_loader.md →</a>
+          </li>
+          <li>
+            <strong>Text structure</strong>
+            chunkingの単位：何が「記事」（翻訳の単位）にあたり、段落が
+            どのように文字数バジェットでチャンクに分割されるか。ゾハルの
+            場合：章 → 記事 → スラムの段落。他のコーパスでは、同様の
+            三階層構造になります。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/03_text_structure.md">stages/03_text_structure.md →</a>
+          </li>
+          <li>
+            <strong>Glossary</strong>
+            用語集。私たちのゾハル用語集を出発点として用いることもできます
+            （同じゾハルを翻訳する場合）。あるいは、ファイル構造と方法論
+            のみを参考にすることもできます（translatorエージェントは
+            内容全体を読み込まれるのではなく、CLIツール経由で用語集を
+            扱います）。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/04_glossary.md">stages/04_glossary.md →</a>
+          </li>
+          <li>
+            <strong>Prompt template</strong>
+            翻訳スタイル（逐語訳／文学的／混合）、表記規則、「創造的」な
+            箇所を訳者注として明記する方法。<code>templates/translation_prompt.md</code>
+            のテンプレートは、オペレーターの選択に応じてLLMエージェントが
+            適応させます。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/05_prompt.md">stages/05_prompt.md →</a>
+          </li>
+          <li>
+            <strong>Publish target</strong>
+            結果の公開先：私たちのテンプレートによるGitHub Pages
+            （<code>src/gh_deploy.py</code> 経由の自動デプロイ）、独自の
+            チャネル（S3／GitLab／自前サーバー）、または公開せずローカルのみ。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/06_publish.md">stages/06_publish.md →</a>
+          </li>
+          <li>
+            <strong>Smoke run</strong>
+            合成ミニコーパスでの短いエンドツーエンド実行：パイプライン全体
+            （chunking → translator → resume → commit）が、適応済みシステム
+            上で数分で動作することを、実コーパスに対する実サブスクリプション
+            を消費せずに検証します。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/07_smoke.md">stages/07_smoke.md →</a>
+          </li>
+          <li>
+            <strong>Hand-off</strong>
+            オペレーターは完全なコーパスでGUIを起動し、Telegramボットで
+            監視します。この時点でデプロイ用LLMエージェントは退き、あとは
+            システム自身が動作します。
+            <a class="stage-doc" href="https://github.com/imyavel/zohar-translator/blob/main/stages/08_handoff.md">stages/08_handoff.md →</a>
+          </li>
+        </ol>
+      </section>
+
+      <section id="architecture">
+        <h2>翻訳器の構造（GUI + Telegram）</h2>
+        <p>
+          詳細な説明は
+          <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+          にあります（9セクション：orchestratorのFSM、並列性、制限回避、
+          chunking+resume、gh_deploy、拡張ポイント、リカバリースクリプト）。
+          ここでは要点のみを示します。
+        </p>
+        <ul class="arch">
+          <li>
+            <strong>GUI</strong>（<code>src/gui.pyw</code>）—— バッチキュー、
+            記事ステータス、chunkingバジェット、開始／停止ボタンを備えた
+            メインウィンドウ。オペレーターの操作起点です。
+          </li>
+          <li>
+            <strong>Telegramボット</strong>（<code>src/bot.py</code>）——
+            章の完成、hit-limit（5h）、weekly-limit、エラーに関する通知。
+            再開やステータス確認のためのコマンドを提供します。オプション
+            （<code>--no-bot</code> で無効化可能）。
+          </li>
+          <li>
+            <strong>Orchestrator</strong>（<code>src/orchestrator.py</code>）
+            —— PREPARING → RUNNING → COMPLETED / HIT_LIMIT / WEEKLY_LIMIT /
+            FAILED の各状態を持つFSM。リトライを処理し、クラッシュ後に
+            状態を復元し、translatorエージェントの並列性を管理します。
+          </li>
+          <li>
+            <strong>Chunking</strong> —— 段落は原文の文字数バジェット
+            （デフォルトで約7500）に従ってチャンクにまとめられます。段落
+            が途中で切られることはなく、大きな段落はまるごと一つのチャンク
+            になります。
+          </li>
+          <li>
+            <strong>Resume</strong> —— translatorが記事の途中で停止した
+            場合（hit-limit、ネットワーク、OOM）、再実行時にはすでに
+            翻訳済みの部分を読み取り、完全に書き込まれた最後の段落を
+            特定して、その次から続行します。重複は書き込まれず、番号付け
+            は通しのまま保たれます。
+          </li>
+          <li>
+            <strong>制限回避</strong> —— 5時間のサブスクリプション
+            ウィンドウでは、orchestratorがバッチをWAITINGに置き、ウィンドウ
+            のリセットまで休止してから続行します。週次制限の場合は、
+            リセットまでTG通知付きで一時停止します。ウィンドウ間で
+            オペレーターの手作業は一切不要です。
+          </li>
+          <li>
+            <strong>gh_deploy</strong>（<code>src/gh_deploy.py</code>）——
+            章が完成するごとに <code>main</code> へcommit + pushを実行
+            します。GitHub Pagesがこれを取り込み、公開サイトを更新します。
+            完成した章は翻訳の進行に合わせてサイトに現れるため、コーパス
+            全体の終了を待つ必要はありません。
+          </li>
+        </ul>
+      </section>
+
+      <section id="contact">
+        <h2>フィードバック</h2>
+        <p>
+          このデプロイ機構自体はまだ他のマシンや他の人の手で実地に試されて
+          いないため、これを利用してインストールと自分のコーパスへの
+          適応プロセスを自力で進めることを決めた最初のボランティアの
+          方々には、説明書に見つかった粗、言い足りない箇所、あるいは
+          明確な誤りについてのフィードバックを大いに歓迎します――
+          ご連絡は
+          <a href="mailto:imyavel@gmail.com">imyavel@gmail.com</a> まで。
+        </p>
+        <p>
+          ソースコード、RUN_ME、issues は
+          <a href="https://github.com/imyavel/zohar-translator">github.com/imyavel/zohar-translator</a>
+          にあります。ライセンスは、コードとドキュメントについてはMIT、
+          リファレンスとしてのゾハル翻訳はCC BY 4.0です。
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        MIT License ·
+        <a href="https://github.com/imyavel/zohar-translator">GitHub</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/RUN_ME.md">RUN_ME.md</a> ·
+        <a href="https://github.com/imyavel/zohar-translator/blob/main/ARCHITECTURE.md">ARCHITECTURE.md</a>
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
