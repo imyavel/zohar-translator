@@ -123,7 +123,7 @@ LLM-сессия (если эта прервётся) могла подхват�
    подставляются `{{HEB_ROOT}}`, `{{CORPUS_TOOLS}}` и т.п.
 6. [`stages/06_publish.md`](stages/06_publish.md) — **Publish target.**
    GitHub Pages по нашему шаблону / другой таргет / без онлайна.
-   Сюда же — `GH_TOKEN`, primary + mirror, лэндинг на 11 локалях.
+   Сюда же — `GH_TOKEN`, primary GH Pages, лэндинг на 11 локалях.
 7. [`stages/07_smoke.md`](stages/07_smoke.md) — **Smoke run.** Короткий
    прогон через адаптированную GUI+TG-систему на синтетическом
    корпусе. Self-contained fixture внутри `tests/` или `examples/`.

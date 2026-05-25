@@ -445,8 +445,6 @@ class ZoharBot:
         if self.cfg.gh_repo:
             owner, name = self.cfg.gh_repo.split("/", 1)
             urls.append(f"https://{owner}.github.io/{name}/")
-        if self.cfg.gh_custom_domain:
-            urls.append(f"https://{self.cfg.gh_custom_domain}/")
         if not urls:
             await update.effective_message.reply_text(
                 "🌐 GitHub Pages не настроен (GH_REPO в .env пуст).",
@@ -458,9 +456,9 @@ class ZoharBot:
         )
 
     async def _cmd_push(self, update: Update, _ctx) -> None:
-        """Manual GitHub Pages push: build_site.py → mirror → git push.
+        """Manual GitHub Pages push: build_site.py → copy → git push.
 
-        Mirror of the auto-deploy path used after every article_done event,
+        Follows the same path as auto-deploy after every article_done event,
         but invoked synchronously by user request. Cancels any pending
         auto-deploy debounce timer (no point waiting if user wants it now).
         """
@@ -511,13 +509,10 @@ class ZoharBot:
                 lines.append(
                     f"  • <code>{_escape(r.repo)}</code>: без изменений"
                 )
-        # Public URLs derived from config.
+        # Public URL derived from config.
         owner, name = self.cfg.gh_repo.split("/", 1)
         primary_url = f"https://{owner}.github.io/{name}/"
-        urls = [primary_url]
-        if self.cfg.gh_custom_domain:
-            urls.append(f"https://{self.cfg.gh_custom_domain}/")
-        lines.append("Через 1–2 мин обновится: " + ", ".join(urls))
+        lines.append("Через 1–2 мин обновится: " + primary_url)
         await msg.edit_text(
             "\n".join(lines),
             parse_mode=constants.ParseMode.HTML,
@@ -739,24 +734,12 @@ class ZoharBot:
         }
 
     def _gh_targets(self) -> list[DeployTarget]:
-        """Build the list of deploy targets from config.
-
-        Always includes primary (gh_repo, no CNAME). Adds mirror if
-        gh_mirror_repo is set; CNAME on mirror = gh_custom_domain (or
-        no CNAME if that's empty too).
-        """
-        targets = [DeployTarget(
+        """Build the list of deploy targets from config (single primary)."""
+        return [DeployTarget(
             repo=self.cfg.gh_repo,
             deploy_dir=self.cfg.gh_deploy_dir,
             cname=None,
         )]
-        if self.cfg.gh_mirror_repo:
-            targets.append(DeployTarget(
-                repo=self.cfg.gh_mirror_repo,
-                deploy_dir=self.cfg.gh_mirror_deploy_dir,
-                cname=self.cfg.gh_custom_domain,
-            ))
-        return targets
 
     async def _run_gh_deploy(self, commit_msg_prefix: str):
         """Run gh_deploy.deploy_site_to_pages under a lock.
@@ -779,7 +762,7 @@ class ZoharBot:
         """Run corpus_tools/build_site.py under a mutex.
 
         Called BEFORE `_run_gh_deploy` (auto-deploy, /push, /rebuild) so
-        the deploy can just mirror the freshly built `Translated/Site/`.
+        the deploy syncs the freshly built `Translated/Site/`.
 
         Args:
             reason: short tag for the log line (e.g. "auto", "push", "rebuild").
@@ -827,9 +810,9 @@ class ZoharBot:
     async def _cmd_rebuild(self, update: Update, _ctx) -> None:
         """Manual rebuild + GitHub Pages push.
 
-        Эквивалент /push: deploy_site_to_pages сам вызывает build_site.py,
-        строит mirror, коммитит и пушит в GH. Cancels any pending auto-deploy
-        debounce timer (no point waiting if user wants it now).
+        Full build (with pagefind) followed by git push to GH Pages.
+        Cancels any pending auto-deploy debounce timer (no point waiting
+        if user wants it now).
         """
         if not (self.cfg.gh_token and self.cfg.gh_repo):
             await update.effective_message.reply_text(
@@ -874,10 +857,8 @@ class ZoharBot:
                     f"• <a href=\"{commit_url}\">{r.repo}@{r.commit_sha[:7]}</a>"
                 )
         owner, name = self.cfg.gh_repo.split("/", 1)
-        site_urls = [f"https://{owner}.github.io/{name}/"]
-        if self.cfg.gh_custom_domain:
-            site_urls.append(f"https://{self.cfg.gh_custom_domain}/")
-        lines.append("Через 1–2 мин обновится: " + ", ".join(site_urls))
+        site_url = f"https://{owner}.github.io/{name}/"
+        lines.append("Через 1–2 мин обновится: " + site_url)
         await msg.edit_text(
             "\n".join(lines),
             parse_mode=constants.ParseMode.HTML,

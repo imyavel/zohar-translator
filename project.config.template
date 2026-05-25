@@ -33,11 +33,8 @@ CHUNK_BUDGET_CHARS=7500
 
 # --- GitHub Pages (опционально) ---
 
-# Имена репозиториев и custom domain — публичные, секретов нет.
-# GH_TOKEN идёт в .env.
+# Имя репозитория — публичное, секретов нет. GH_TOKEN идёт в .env.
 GH_REPO=
-GH_MIRROR_REPO=
-GH_CUSTOM_DOMAIN=
 
 # Git-committer для auto-deploy. Default — `zohar-translator-bot`.
 GH_COMMIT_USER=zohar-translator-bot

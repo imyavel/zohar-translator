@@ -40,7 +40,7 @@
    ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │ corpus_tools/build_site.py → Translated/Site/ (HTML + pagefind)  │
-│ src/gh_deploy.py            → git push в N зеркал GH Pages       │
+│ src/gh_deploy.py            → git push в GH Pages                │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -188,25 +188,15 @@ Orchestrator считает marker_rc=4 как **partial success** — стат�
 Поле `partial_articles_in_run` сохраняется в `last_session.json` для
 оператора.
 
-## 6. gh_deploy: primary + mirror
+## 6. gh_deploy: GitHub Pages push
 
-`src/gh_deploy.py` поддерживает N independent `DeployTarget`'ов,
-каждый с собственным репо, локальным worktree-зеркалом и (опционально)
-CNAME-файлом. Типичная конфигурация:
-
-- **Primary** — `<owner>/<repo>`, без CNAME, отдаётся через
-  `https://<owner>.github.io/<repo>/`.
-- **Mirror** — `<owner>/<repo>-mirror` с CNAME=`mydomain.com`.
-
-Если custom-домен слетит (DNS-провайдер, expired домен) — primary на
-github.io продолжает работать. Это критично для long-form переводов с
-внешними ссылками.
+`src/gh_deploy.py` деплоит собранный сайт в один primary `DeployTarget`:
+`GH_REPO` (`<owner>/<repo>`), отдаётся через `https://<owner>.github.io/<repo>/`.
 
 Pipeline (`deploy_site_to_pages`):
-1. Один раз — `build_site.py` → `Translated/Site/`.
-2. Для каждого таргета: mirror `Site/*` → его `deploy_dir/`; пишем
-   или удаляем CNAME; всегда `.nojekyll`; `git add -A`; если diff пуст
-   → skip; иначе commit + push.
+1. Сайт должен быть уже собран вызывающей стороной (`bot._run_build_site`).
+2. Для primary таргета: копируем `Site/*` → `deploy_dir/`; всегда
+   `.nojekyll`; `git add -A`; если diff пуст → skip; иначе commit + push.
 3. **Token-in-URL push**: токен инжектится только в момент `git push`
    в URL `https://x-access-token:<TOKEN>@github.com/<owner>/<repo>.git`
    и **не записывается ни в `.git/config`, ни в commit metadata**. В

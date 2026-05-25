@@ -67,10 +67,7 @@ class Config(BaseModel):
     # logs a one-time warning at startup and skips all push attempts.
     gh_token: Optional[str] = None
     gh_repo: Optional[str] = None        # primary repo, served at username.github.io/repo
-    gh_mirror_repo: Optional[str] = None  # optional mirror repo with custom domain
-    gh_custom_domain: Optional[str] = None  # CNAME target for the mirror repo
     gh_deploy_dir: Path = Field(default_factory=lambda: PROJECT_ROOT / "state" / "site_git")
-    gh_mirror_deploy_dir: Path = Field(default_factory=lambda: PROJECT_ROOT / "state" / "site_git_mirror")
     gh_deploy_debounce_seconds: float = 30.0
     # Minimum gap between two consecutive auto-deploys, in seconds. With
     # N parallel translators each emitting article_done, this caps the
@@ -176,8 +173,6 @@ def load_config() -> Config:
     )
     gh_token = os.getenv("GH_TOKEN", "").strip() or None
     gh_repo = os.getenv("GH_REPO", "").strip() or None
-    gh_mirror_repo = os.getenv("GH_MIRROR_REPO", "").strip() or None
-    gh_custom_domain = os.getenv("GH_CUSTOM_DOMAIN", "").strip() or None
 
     cfg = Config(
         tg_bot_token=_required("TG_BOT_TOKEN"),
@@ -197,8 +192,6 @@ def load_config() -> Config:
         chunk_budget_chars=chunk_budget,
         gh_token=gh_token,
         gh_repo=gh_repo,
-        gh_mirror_repo=gh_mirror_repo,
-        gh_custom_domain=gh_custom_domain,
         gh_deploy_debounce_seconds=gh_deploy_debounce,
         gh_deploy_min_interval_seconds=gh_deploy_min_interval,
     )

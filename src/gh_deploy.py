@@ -1,21 +1,12 @@
-"""GitHub Pages auto-deploy: rebuild site → sync deploy-tree(s) → git push.
+"""GitHub Pages auto-deploy: sync deploy-tree → git push.
 
 Used by bot.py for both auto-deploy (after article_done events, debounced)
 and the manual `🌐 Push` button / `/push` command.
 
-Supports up to N parallel deploy targets, each with its own repo + worktree
-+ optional CNAME (custom domain). Typical setup:
-
-    1) Primary  — `<owner>/<repo>`         (no CNAME, served at github.io)
-    2) Mirror   — `<owner>/<repo>-mirror`  (optional, CNAME=custom domain)
-
-If the custom-domain mirror loses DNS or the domain expires, the primary
-continues to work at its github.io URL.
-
 Pipeline (deploy_site_to_pages):
-    1. Run corpus_tools/build_site.py once to regenerate Translated/Site/.
+    1. Site must already be built (caller's responsibility).
     2. For each DeployTarget:
-       a) Mirror Translated/Site/* into target.deploy_dir, preserving .git.
+       a) Copy Translated/Site/* into target.deploy_dir, preserving .git.
        b) Write or remove `CNAME` per target.cname.
        c) Always re-assert `.nojekyll`.
        d) git add -A; if diff is empty → record changed=False and skip.
@@ -132,7 +123,7 @@ def _build_site(heb_root: Path) -> str:
     return "\n".join((proc.stdout or "").strip().splitlines()[-5:])
 
 
-def _mirror_site(src: Path, dst: Path) -> None:
+def _copy_site_to_deploy_dir(src: Path, dst: Path) -> None:
     """Replace dst/* with src/*, preserving .git/.nojekyll/CNAME at dst root."""
     if not src.is_dir():
         raise FileNotFoundError(f"Site source missing: {src}")
@@ -241,7 +232,7 @@ def _commit_and_push(deploy_dir: Path, repo: str, token: str,
             if fetch.returncode == 0:
                 # Cherry-pick our single new commit onto fetched HEAD.
                 # Easier than rebase: hard reset to remote, then re-stage
-                # all changes and recommit. The mirrored Site/ on disk
+                # all changes and recommit. The copied Site/ on disk
                 # is already the desired state.
                 _git(["reset", "--hard", "FETCH_HEAD"], deploy_dir, check=False)
                 _git(["add", "-A"], deploy_dir)
@@ -319,7 +310,7 @@ def deploy_site_to_pages(
     token: str,
     commit_msg_prefix: str = "Auto-deploy",
 ) -> list[DeployResult]:
-    """Pipeline: assume site is ALREADY built; for each target: mirror →
+    """Pipeline: assume site is ALREADY built; for each target: copy →
     CNAME → add → commit-if-changes → push.
 
     Site build is the caller's responsibility (bot._run_build_site).
@@ -361,11 +352,8 @@ def deploy_site_to_pages(
     results: list[DeployResult] = []
     for tgt in targets:
         _ensure_repo(tgt.deploy_dir, tgt.repo)
-        _mirror_site(site_src, tgt.deploy_dir)
+        _copy_site_to_deploy_dir(site_src, tgt.deploy_dir)
         _apply_cname(tgt.deploy_dir, tgt.cname)
-        # Build msg per-target with the actual file-list diff at this target.
-        # (Mirror/origin deploys may have slightly different staged sets,
-        # though typically identical.)
         _git(["add", "-A"], tgt.deploy_dir)
         summary = _summarize_changes(tgt.deploy_dir)
         msg = f"{commit_msg_prefix} {ts}\n\n{summary}"
@@ -389,12 +377,6 @@ if __name__ == "__main__":
         DeployTarget(repo=os.environ["GH_REPO"],
                      deploy_dir=state_dir / "site_git", cname=None),
     ]
-    if os.getenv("GH_MIRROR_REPO"):
-        targets.append(DeployTarget(
-            repo=os.environ["GH_MIRROR_REPO"],
-            deploy_dir=state_dir / "site_git_mirror",
-            cname=os.getenv("GH_CUSTOM_DOMAIN") or None,
-        ))
 
     results = deploy_site_to_pages(
         heb_root=heb_root, targets=targets, token=token,

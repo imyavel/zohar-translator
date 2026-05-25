@@ -8,10 +8,9 @@
 
 **(Q 1 из 1: куда публикуем перевод?)**
 
-- **(a) GitHub Pages по нашему шаблону.** Primary-репо с переводом +
-  опциональное зеркало + опц. custom domain. Авто-деплой через
-  [`src/gh_deploy.py`](../src/gh_deploy.py) — он же коммитит, он же
-  выкатывает. Минимум ручной работы.
+- **(a) GitHub Pages по нашему шаблону.** Primary-репо с переводом.
+  Авто-деплой через [`src/gh_deploy.py`](../src/gh_deploy.py) — он же
+  коммитит, он же выкатывает. Минимум ручной работы.
 - **(b) Свой таргет.** Другой хостинг, кастомный формат, отдельный
   CMS. Нужно править `gh_deploy.py` либо подменять `build_site.py`.
 - **(c) Только локально.** Перевод копится в `$HEB_ROOT/Translated/`,
@@ -26,19 +25,16 @@
 
 Спроси по очереди (правило `(Q N из NN)`):
 
-- **(Q 1 из 4: GitHub-аккаунт оператора?)** Например `imyavel`. Если
+- **(Q 1 из 2: GitHub-аккаунт оператора?)** Например `imyavel`. Если
   у оператора нет аккаунта — заведи: github.com/signup, пошагово,
   пароль и 2FA на стороне оператора.
-- **(Q 2 из 4: имя primary-репо для перевода?)** Короткое, латиница,
+- **(Q 2 из 2: имя primary-репо для перевода?)** Короткое, латиница,
   дефисы. Пример: `zohar-russian`, `mishna-translation`. Будет
   виден в URL `<owner>.github.io/<repo>/`.
-- **(Q 3 из 4: нужно зеркало?)** Иногда полезно: один репо публичный
-  (CC BY), второй приватный с метаданными или draft'ами. Если
-  «нет» — пропусти.
-- **(Q 4 из 4: custom domain?)** Например `zohar-sulam.example.com`.
-  Если нет домена — пропусти, останется
-  `<owner>.github.io/<repo>/`. Если есть — оператор отдельно
-  настраивает DNS CNAME → `<owner>.github.io`.
+
+Если оператору позже понадобится custom domain — он настраивает его
+вручную через GitHub Settings → Pages → Custom domain; в `project.config`
+ничего дополнительного не хранится.
 
 ### 6.2.2 GH_TOKEN
 
@@ -53,7 +49,7 @@ GitHub-токен — единственный секрет, который оп
 4. Generate new token. Expiration: 90 дней или дольше (оператору
    придётся обновлять).
 5. Repository access: «Only select repositories», выбрать тот, что в
-   Q2 (и зеркало из Q3, если есть). Если репо ещё не создан — можно
+   Q2. Если репо ещё не создан — можно
    `All repositories`, потом перевыдашь под конкретный.
 6. Permissions → Repository → **Contents: Read and write**, **Pages:
    Read and write**, **Metadata: Read-only** (обязательно).
@@ -87,8 +83,6 @@ endpoint.) Если 422 «name already exists» — репо уже есть, о
 ```
 GH_TOKEN=<...секрет, никогда не лоудить в чат...>
 GH_REPO=<owner>/<repo>
-GH_MIRROR_REPO=<owner>/<mirror>     # опц.
-GH_CUSTOM_DOMAIN=<domain>            # опц.
 GH_COMMIT_USER=zohar-translator-bot
 GH_COMMIT_EMAIL=zohar-translator-bot@users.noreply.github.com
 ```
@@ -133,8 +127,6 @@ nginx? Notion? Telegram-канал?). Дальше — два места пра�
     ...,
     "stage6.publish_target": "github_pages",
     "stage6.repo": "<owner>/<repo>",
-    "stage6.mirror": null,
-    "stage6.custom_domain": null,
     "stage6.gh_token_set": true,
     "stage6.landing_deferred": true
   }
