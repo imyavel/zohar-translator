@@ -32,19 +32,31 @@ Reusable: пригодится для регрессий.
 `project.config`!) на `<repo>/examples/smoke`:
 
 ```
-HEB_ROOT="$(pwd)/examples/smoke" python src/main.py --no-bot --once
+HEB_ROOT="$(pwd)/examples/smoke" python src/main.py --no-bot --idle
 ```
 
 Флаги:
 
-- `--no-bot` — без Telegram (опц., для smoke не нужен).
-- `--once` — обработать одну главу и выйти (если нет такого флага —
-  смотри `python src/main.py --help`; в крайнем случае запусти и
-  через минуту убей).
+- `--no-bot` — без Telegram (для smoke не нужен).
+- `--idle` — orchestrator стартует в IDLE и ждёт ручного триггера.
+  Запусти один цикл вручную (через event-API или просто убери `--idle`
+  и убей процесс после первой закрытой главы).
+
+`src/main.py` сейчас не имеет встроенного `--once`. Реалистичный
+smoke-workflow:
+
+1. Стартуй `python src/main.py --no-bot` — orchestrator пройдёт
+   PREPARING → BATCHING → COLLECTING на маленьком fixture быстро.
+2. Дождись первой закрытой главы (`chapter_closed` event в логе) или
+   просто завершения одного цикла (`cycle_done`).
+3. Останови процесс Ctrl-C / `taskkill /PID …`.
+
+Если нужен честный one-shot — добавь `--once` в `src/main.py` и
+обработай в `Orchestrator` (текущая задача за рамки smoke).
 
 ## 7.3 Что проверяешь по шагам
 
-1. **Catalog генерится.** В `examples/smoke/articles_catalog.json`
+1. **Catalog генерится.** В `examples/smoke/Source/articles_catalog.json`
    появился плоский список из 3-5 статей.
 2. **Batch-фабрика стартует.** В `examples/smoke/.batch/` лежат
    рабочие папки (по одной на batch), внутри — `prompt.txt` с
@@ -55,8 +67,9 @@ HEB_ROOT="$(pwd)/examples/smoke" python src/main.py --no-bot --once
    аналог, смотри `src/orchestrator.py`).
 4. **Результат собирается.** `process_results.py` отрабатывает,
    `Translated/` непустой.
-5. **`build_site.py`.** Локально сгенерил `site/index.html`,
-   открывается без ошибок в браузере.
+5. **`build_site.py`.** Локально сгенерил
+   `examples/smoke/Translated/Site/index.html`, открывается без ошибок
+   в браузере.
 6. **(Опц.) Deploy.** Если на стадии 6 был путь (a) и есть тестовый
    репо — push прошёл, GH Pages поднялся. **Не пушь в боевой репо
    оператора с тестовыми данными!** Используй отдельный test-repo или
@@ -110,7 +123,7 @@ HEB_ROOT="$(pwd)/examples/smoke" python src/main.py --no-bot --once
 
 - [ ] Fixture в `examples/smoke/` существует.
 - [ ] Pipeline прошёл end-to-end на fixture.
-- [ ] `site/index.html` отрисовался корректно.
+- [ ] `Translated/Site/index.html` отрисовался корректно.
 - [ ] Логи без необработанных ошибок.
 - [ ] (Если был путь 6a) Deploy в тестовый репо протестирован хотя
       бы раз.

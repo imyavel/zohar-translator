@@ -4,11 +4,11 @@ translator can resume from it, must restart from scratch, or already
 finished.
 
 Used by:
-  - Heb/Scripts/build_batch.py — render `{{resume_block}}` into prompt.
-  - Heb/Scripts/mark_article_done.py — decide between rc=4 (partial_kept)
+  - corpus_tools/build_batch.py — render `{{resume_block}}` into prompt.
+  - corpus_tools/mark_article_done.py — decide between rc=4 (partial_kept)
     and rc=1 (corrupted → delete + failed).
-  - ZoharTGBatch/orchestrator.py — `_preserve_partial_artifacts` keeps
-    .md only if state == 'partial' or 'complete'.
+  - src/orchestrator.py — `_preserve_partial_artifacts` keeps .md only if
+    state == 'partial' or 'complete'.
 
 State semantics:
   absent     — file does not exist or is empty.
@@ -40,6 +40,7 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(os.environ.get("HEB_ROOT") or Path(__file__).resolve().parents[1])
+CORPUS_TOOLS = Path(__file__).resolve().parent
 
 _PARA_RX = re.compile(r'(?m)^(\d+)\)')
 _TITLE_RX = re.compile(r'^#\s+Статья\s+(\d+)\.', re.MULTILINE)
@@ -61,7 +62,7 @@ def inspect_partial(
         expected_article_index: If given, the file's `# Статья N.`
                                 header must match this number.
         run_validator:          If True, also runs
-                                Scripts/validate_translated_article.py.
+                                corpus_tools/validate_translated_article.py.
                                 Slower but catches formatting violations.
 
     Returns:
@@ -199,7 +200,9 @@ def _run_validator(md_path: Path) -> Optional[str]:
     """Return None on validator pass, else a short stderr tail."""
     try:
         cp = subprocess.run(
-            ['python', 'Scripts/validate_translated_article.py', str(md_path)],
+            [sys.executable,
+             str(CORPUS_TOOLS / 'validate_translated_article.py'),
+             str(md_path)],
             cwd=ROOT, capture_output=True, text=True,
             encoding='utf-8', errors='replace',
         )

@@ -7,7 +7,7 @@ Exit code 1 otherwise (still waiting).
 Stdout: one-line human summary.
 
 Used by the orchestrator in a monitoring loop:
-    while ! python Scripts/batch_status.py; do sleep 60; done
+    while ! python corpus_tools/batch_status.py; do sleep 60; done
 """
 import os
 import sys

@@ -8,7 +8,7 @@ at each level.
 Structure matches the planned wikibooks hierarchy:
   Зоар (Перуш ха-Сулам) → Том N → Глава → Статья (с ивр. названием)
 
-Usage:  python Scripts/build_site.py
+Usage:  python corpus_tools/build_site.py
 """
 from __future__ import annotations
 import html

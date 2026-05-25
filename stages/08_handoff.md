@@ -18,7 +18,7 @@
 - [ ] `glossary/glossary.json` валиден, `glossary_tool.py` отвечает
       на `find`.
 - [ ] `templates/translation_prompt.md` адаптирован под корпус.
-- [ ] `articles_catalog.json` собран в `$HEB_ROOT/`.
+- [ ] `articles_catalog.json` собран в `$HEB_ROOT/Source/`.
 - [ ] Stage 7 (smoke) прошёл.
 
 ## 8.2 Telegram-бот (опционально, но рекомендую)

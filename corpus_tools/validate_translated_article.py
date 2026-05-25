@@ -2,7 +2,7 @@
 Validate (and auto-fix common issues) of a translated article file.
 
 Usage:
-    python Scripts/validate_translated_article.py <path/to/NNN.md>
+    python corpus_tools/validate_translated_article.py <path/to/NNN.md>
 
 Exit codes:
     0 — file is valid (possibly after auto-fix)

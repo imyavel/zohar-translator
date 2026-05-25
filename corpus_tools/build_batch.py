@@ -14,8 +14,8 @@ Side effects:
   - Writes .batch/manifest.json with batch metadata.
 
 Usage:
-    python Scripts/build_batch.py --chapter Vayeshev --usage 0
-    python Scripts/build_batch.py --chapter Vayeshev --usage 17 --target 80 --divisor 80
+    python corpus_tools/build_batch.py --chapter Vayeshev --usage 0
+    python corpus_tools/build_batch.py --chapter Vayeshev --usage 17 --target 80 --divisor 80
 
 Output: manifest JSON printed to stdout.
 """
@@ -35,14 +35,14 @@ ROOT = Path(os.environ.get("HEB_ROOT") or Path(__file__).resolve().parents[1])
 CATALOG = ROOT / 'Source' / 'articles_catalog.json'
 TRANSLATED = ROOT / 'Translated'
 BATCH = ROOT / '.batch'
-TEMPLATE = ROOT / 'Docs' / 'translation_prompt.md'
+TEMPLATE = Path(__file__).resolve().parents[1] / 'templates' / 'translation_prompt.md'
 
 # Feature flag: when set to 0, resumable behaviour is disabled — any pre-
 # existing .md without done.flag is deleted before translation, exactly
 # as build_batch behaved before the resumable refactor.
 RESUMABLE = os.getenv('RESUMABLE_TRANSLATION', '1').strip() not in ('0', 'false', 'no', 'off')
 
-sys.path.insert(0, str(ROOT / 'Scripts'))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from partial_state import inspect_partial  # noqa: E402
 
 

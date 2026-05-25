@@ -1,8 +1,8 @@
 """
-Config loader for ZoharTGBatch (parallel-batch variant of ZoharTG).
+Config loader for zohar-translator orchestrator.
 
-Adds parallel_translators, parallel_cache_primer, consecutive_failure_threshold,
-dashboard_debounce_seconds. Otherwise mirrors ZoharTG/config.py.
+Reads .env + project.config (project.config wins for non-secret keys),
+exposes the typed `Cfg` model consumed across src/ and corpus_tools/.
 """
 from __future__ import annotations
 

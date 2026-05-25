@@ -1,7 +1,7 @@
 """
 Compute next_cursor = first chapter (by global book/chapter order) that
-is not fully translated yet. Used by both controller (meta_orchestration
-§2) and orchestrator (§5.4).
+is not fully translated yet. Used by `src/orchestrator.py:_run_preparing`
+(PREPARING phase, see ARCHITECTURE.md §2).
 
 Output: JSON to stdout with fields:
 {

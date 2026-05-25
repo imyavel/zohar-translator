@@ -29,6 +29,7 @@ from pathlib import Path
 
 ROOT = Path(os.environ.get("HEB_ROOT") or Path(__file__).resolve().parents[1])
 BATCH = ROOT / '.batch'
+CORPUS_TOOLS = Path(__file__).resolve().parent
 
 PS_DETECT_KILL = (
     "$targets = Get-CimInstance Win32_Process | Where-Object { "
@@ -95,7 +96,7 @@ def main():
     # No alive .sh. Did a previous batch finish without process_results?
     if done_file.exists() and manifest_file.exists():
         cp = subprocess.run(
-            ['python', 'Scripts/process_results.py'],
+            [sys.executable, str(CORPUS_TOOLS / 'process_results.py')],
             cwd=ROOT, capture_output=True, text=True,
             encoding='utf-8', errors='replace',
         )

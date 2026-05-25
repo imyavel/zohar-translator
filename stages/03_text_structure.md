@@ -3,7 +3,7 @@
 **Цель.** Orchestrator понимает, что в этом корпусе — «единица
 перевода» (то, что переводится одним вызовом translator-агента) и
 «единица батча» (то, что коммитится одним заходом на GitHub Pages).
-Артефакт — `$HEB_ROOT/articles_catalog.json`.
+Артефакт — `$HEB_ROOT/Source/articles_catalog.json`.
 
 Перед этой стадией обязательно прочитай
 [`reference/source_loader/CATALOG_STRUCTURE.md`](../reference/source_loader/CATALOG_STRUCTURE.md) —
@@ -66,20 +66,48 @@ catalog'а). Если шаблон корпуса совпадает — пер�
 `articles_catalog.json` уже описан в `CATALOG_STRUCTURE.md`. Собери
 вручную или допиши свой loader, чтобы он сразу его генерил.
 
-Минимальная схема каждой записи:
+Канонический формат записи — в
+[`reference/source_loader/CATALOG_STRUCTURE.md`](../reference/source_loader/CATALOG_STRUCTURE.md) §2.
+Минимальный набор полей, на который опираются `corpus_tools/build_batch.py`,
+`next_cursor.py` и шаблон промпта:
 
 ```json
 {
-  "article_id": "Zohar.Bereshit.1",
-  "chapter_id": "Bereshit",
-  "title_he": "...",
-  "title_ru": "...",
-  "char_count": 4823,
-  "source_path": "Source/Zohar_he.json#/Bereshit/1"
+  "article_index":    1,
+  "chapter":          "Bereshit",
+  "chapter_ru":       "Берешит",
+  "chapter_order":    1,
+  "book":             "Книга 1",
+  "book_index":       0,
+  "sulam_section":    "Bereshit_I",
+  "sulam_paragraphs": [1, 3],
+  "he_title":         "...",
+  "source_chars":     4823
 }
 ```
 
-Точные поля — в `CATALOG_STRUCTURE.md`.
+- `article_index` — int, сквозной номер статьи в корпусе. Попадает в имя
+  файла `NNN.md`.
+- `chapter` — slug главы (английский, без пробелов). Ключ для
+  `next_cursor.py` и группировки прогресса.
+- `chapter_ru` — русское имя главы, используется как имя поддиректории
+  в `Translated/`.
+- `chapter_order`, `book_index` — глобальная сортировка. По ним
+  `next_cursor.py` выбирает следующую главу.
+- `sulam_section` + `sulam_paragraphs` — где лежит исходник статьи
+  (имя секции в `Source/<...>/<sulam_section>.json` и диапазон
+  параграфов). У не-Зоар корпусов эти имена остаются те же, но
+  ссылаются на свой `Source/` layout.
+- `he_title` — заголовок на языке источника (показывается переводчику).
+- `source_chars` — длина статьи в символах (нужна планировщику батчей).
+
+Если у твоего корпуса концепт «параграфа» отсутствует, можно
+эмулировать его на уровне предложений или строк — главное, чтобы
+`sulam_paragraphs: [start, end]` указывало диапазон, который ляжет в
+файл `NNN.md`.
+
+Точные поля и расширенный набор (`volume`, `en_label`, `zohar_paragraphs`) —
+в `CATALOG_STRUCTURE.md` §2.
 
 ## 3.4 Проверка
 
@@ -87,10 +115,10 @@ catalog'а). Если шаблон корпуса совпадает — пер�
 
 - Количество записей ≈ ожидаемое (сравни с тем, что сказал оператор
   в Q 3).
-- Поле `char_count` заполнено (нужно orchestrator'у для оценки чанков).
-- Все `chapter_id` встречаются хотя бы в одной статье; нет «осиротевших».
-- Сортировка имеет смысл (например, по канон. порядку Танаха, а не
-  алфавитная — иначе сайт будет нечитаем).
+- Поле `source_chars` заполнено (нужно orchestrator'у для оценки чанков).
+- Все `chapter` встречаются хотя бы в одной статье; нет «осиротевших».
+- Сортировка по `(book_index, chapter_order)` имеет смысл (например, по
+  канон. порядку Танаха, а не алфавитная — иначе сайт будет нечитаем).
 
 ## 3.5 CHUNK_BUDGET_CHARS
 
@@ -120,7 +148,7 @@ catalog'а). Если шаблон корпуса совпадает — пер�
 ## Чек-лист стадии 3
 
 - [ ] Оператор согласовал понятие «статьи» и «главы» для своего корпуса.
-- [ ] `$HEB_ROOT/articles_catalog.json` существует, валиден,
+- [ ] `$HEB_ROOT/Source/articles_catalog.json` существует, валиден,
       содержит ожидаемое число записей.
 - [ ] `CHUNK_BUDGET_CHARS` подобран под длину статей.
 - [ ] Объём корпуса понятен (число статей × средняя длина) — оператор

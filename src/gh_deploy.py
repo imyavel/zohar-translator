@@ -322,7 +322,8 @@ def deploy_site_to_pages(
     Synchronous; meant to be called via `asyncio.to_thread(...)` from bot.
 
     Args:
-        heb_root: cfg.heb_root (path to Heb/). Must contain `Translated/Site/`.
+        heb_root: cfg.heb_root (corpus root, HEB_ROOT). Must contain
+            `Translated/Site/`.
         targets: list of DeployTarget. Order matters only for log output;
             each target is independent and uses its own worktree.
         token: cfg.gh_token, GitHub PAT with `repo` scope.

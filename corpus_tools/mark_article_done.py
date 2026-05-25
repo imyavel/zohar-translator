@@ -5,7 +5,7 @@ orchestrator dies mid-batch (session limit, OOM, etc.) progress.json
 already reflects every article that finished cleanly.
 
 Usage:
-    python Scripts/mark_article_done.py <batch_name>
+    python corpus_tools/mark_article_done.py <batch_name>
 
 where <batch_name> is e.g. "019_Vayechi" — same as
 manifest.articles[i].batch_name.
@@ -59,7 +59,8 @@ HIT_LIMIT_RX = re.compile(r"hit your limit", re.IGNORECASE)
 RESUMABLE = os.getenv('RESUMABLE_TRANSLATION', '1').strip() not in (
     '0', 'false', 'no', 'off',
 )
-sys.path.insert(0, str(ROOT / 'Scripts'))
+CORPUS_TOOLS = Path(__file__).resolve().parent
+sys.path.insert(0, str(CORPUS_TOOLS))
 from partial_state import inspect_partial  # noqa: E402
 
 
@@ -220,7 +221,9 @@ def main():
             status = 'missing'
         else:
             cp = subprocess.run(
-                ['python', 'Scripts/validate_translated_article.py', str(md_path)],
+                [sys.executable,
+                 str(CORPUS_TOOLS / 'validate_translated_article.py'),
+                 str(md_path)],
                 cwd=ROOT, capture_output=True, text=True,
                 encoding='utf-8', errors='replace')
             if cp.returncode != 0:
@@ -296,9 +299,9 @@ def main():
                      encoding='utf-8')
     print(f'{batch_name}: {status} ({len(completed)}/{total})')
 
-    # If this article just closed the chapter — rebuild the site and
-    # master_progress.md right now. This way a mid-batch death never
-    # leaves the site stale w.r.t. completed chapters.
+    # If this article just closed the chapter — rebuild the site right
+    # now. This way a mid-batch death never leaves the site stale w.r.t.
+    # completed chapters.
     chapter_just_closed = (
         status == 'ok'
         and total > 0
@@ -308,9 +311,8 @@ def main():
     if chapter_just_closed:
         print(f'{batch_name}: chapter {art["chapter"]} closed → rebuilding site',
               file=sys.stderr)
-        subprocess.run(['python', 'Scripts/build_master_progress.py'],
-                       cwd=ROOT, check=False)
-        subprocess.run(['python', 'Scripts/build_site.py'],
+        subprocess.run([sys.executable,
+                        str(CORPUS_TOOLS / 'build_site.py')],
                        cwd=ROOT, check=False)
     return rc
 

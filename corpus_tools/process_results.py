@@ -4,16 +4,15 @@ Process headless translator results in .batch/ after run_batch.sh finishes.
 For each article in manifest.json:
   - Parse result_{name}.json (headless stdout)
   - Detect hit-limit (in result.result text or stderr log)
-  - Validate .md file via Scripts/validate_translated_article.py
+  - Validate .md file via corpus_tools/validate_translated_article.py
   - Check paragraph count (regex ^(\d+)\))
   - Update per-chapter progress.json (completed/failed/last_session)
 After all articles:
-  - Rebuild Translated/master_progress.md via build_master_progress.py
   - Rebuild the mini-site via build_site.py IF any chapter closed this cycle
   - Compute next_cursor via next_cursor.py logic
 
-Output: orchestrator report (JSON) to stdout — matches the YAML schema
-required by meta_orchestration.md §4 (status, chapters_touched,
+Output: orchestrator report (JSON) to stdout — matches the schema
+consumed by src/orchestrator.py (status, chapters_touched,
 chapters_done_this_cycle, articles_translated, articles_failed,
 site_rebuilt, site_summary, next_cursor, hit_limit_reset, reason).
 """
@@ -38,7 +37,8 @@ BATCH = ROOT / '.batch'
 RESUMABLE = os.getenv('RESUMABLE_TRANSLATION', '1').strip() not in (
     '0', 'false', 'no', 'off',
 )
-sys.path.insert(0, str(ROOT / 'Scripts'))
+CORPUS_TOOLS = Path(__file__).resolve().parent
+sys.path.insert(0, str(CORPUS_TOOLS))
 from partial_state import inspect_partial  # noqa: E402
 # Two reset-message variants emitted by claude-code:
 #   5-hour (session) limit: "hit your limit · resets 6:40pm (Europe/Moscow)"
@@ -111,7 +111,9 @@ def validate_md(md_path, expected_parags):
     if not md_path.exists() or md_path.stat().st_size == 0:
         return 'missing'
     cp = subprocess.run(
-        ['python', 'Scripts/validate_translated_article.py', str(md_path)],
+        [sys.executable,
+         str(CORPUS_TOOLS / 'validate_translated_article.py'),
+         str(md_path)],
         cwd=ROOT, capture_output=True, text=True, encoding='utf-8', errors='replace')
     if cp.returncode != 0:
         return 'invalid'
@@ -346,7 +348,8 @@ def main():
                     if chapters_done_this_cycle else None)
 
     # Compute next_cursor using the same logic as next_cursor.py
-    nc_cp = subprocess.run(['python', 'Scripts/next_cursor.py'],
+    nc_cp = subprocess.run([sys.executable,
+                            str(CORPUS_TOOLS / 'next_cursor.py')],
                            cwd=ROOT, capture_output=True, text=True,
                            encoding='utf-8', errors='replace')
     nc = json.loads(nc_cp.stdout or '{}') if nc_cp.returncode == 0 else {}

@@ -261,3 +261,79 @@ issue #25669, Claude API Effort docs, Claude Code CLI reference.
 
 Все эти точки покрываются стадиями адаптации в `RUN_ME.md` (фаза C
 плана).
+
+## 9. Recovery-скрипты
+
+В `corpus_tools/` три скрипта для штатного и аварийного восстановления
+между запусками orchestrator'а. Они вызываются автоматически из самого
+orchestrator'а (см. §2, переход IDLE → PREPARING), но при ручной
+отладке их можно дёргать напрямую.
+
+### 9.1 `partial_state.py`
+
+Анализирует, в каком состоянии находится частично переведённый
+`Translated/<book>/<chapter_ru>/NNN.md`. Возвращает один из четырёх
+state'ов:
+
+- `absent` — файла нет (или пустой).
+- `partial` — параграфы идут сплошной последовательностью от `start`,
+  но не доходят до `end`. `next_start = last + 1` — отсюда продолжить.
+- `complete` — параграфы покрывают весь диапазон `[start..end]`,
+  только `done.flag` отсутствует. Можно сразу проставить флаг.
+- `corrupted` — нумерация параграфов сломана (пропуски, дубли,
+  неправильный первый параграф, валидатор провалился, …). Файл нужно
+  удалить и перевести заново.
+
+Используется автоматически из `build_batch.py` (рендерит блок
+`{{resume_block}}` для translator-промпта) и из
+`mark_article_done.py` / `process_results.py` (решают, идёт ли
+статья в `completed`/`failed` или остаётся pending для следующего
+цикла).
+
+Ручной CLI:
+
+```
+python corpus_tools/partial_state.py <md_path> <start> <end> \
+    [--article-index N] [--no-validator]
+```
+
+### 9.2 `wake_recover.py`
+
+Запускается в начале каждого нового цикла (wake-up) orchestrator'а.
+Чинит два сценария, унаследованных от предыдущей сессии:
+
+1. **`STALE_KILLED`** — предыдущая сессия оставила живым процесс
+   `run_batch.sh` (плюс несколько `claude.exe -p`-детей). Новая сессия
+   не ждёт их — `wake_recover.py` через PowerShell-фильтр находит и
+   убивает stale-tree, чистит `.batch/run_batch.pid`,
+   `.batch/run_batch.done`, `.batch/manifest.json`.
+2. **`SELF_HEAL`** — `run_batch.sh` уже завершился (`.done` есть), но
+   предыдущий orchestrator упал до того, как успел вызвать
+   `process_results.py`. Тогда `wake_recover.py` сам прогоняет
+   `process_results.py`, чтобы `report.json` отражал реальное
+   состояние батча до того, как FSM продолжит цикл.
+
+В нормальном случае печатает `OK` и ничего не делает. Ручной CLI:
+
+```
+python corpus_tools/wake_recover.py
+```
+
+### 9.3 `kill_stale_batch.py`
+
+Узкий «гильотинный» инструмент: завершает живой `run_batch.sh` и его
+`claude.exe -p`-детей по фильтру (имя процесса + содержимое
+CommandLine). Идемпотентен — если ничего не нашёл, печатает «no stale
+processes». В отличие от `wake_recover.py`, не чистит residue
+`.batch/` и не делает self-heal — только убивает процессы.
+
+Применять, если:
+- visible orchestrator завис, а `run_batch.sh` в Task Manager видим;
+- `wake_recover.py` отказался убирать (например, не нашёл по фильтру);
+- нужно прибить старый цикл вручную перед запуском нового.
+
+Ручной CLI:
+
+```
+python corpus_tools/kill_stale_batch.py
+```
