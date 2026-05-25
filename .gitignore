@@ -1,0 +1,17 @@
+.env
+state/
+logs/
+__pycache__/
+*.zip
+*.exe
+.tools/
+.backup_*/
+.tmp/
+.tmp_cycle/
+.batch/
+*.pyc
+.DS_Store
+Thumbs.db
+# Локальные данные корпуса оператора — НИКОГДА не коммитим:
+Source/
+Translated/
