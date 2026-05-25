@@ -1,4 +1,6 @@
 .env
+progress.json
+project.config
 state/
 logs/
 __pycache__/

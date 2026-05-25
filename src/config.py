@@ -16,7 +16,11 @@ from pydantic import BaseModel, Field, field_validator
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(PROJECT_ROOT / ".env")
+# project.config — публичные параметры адаптации корпуса (без секретов),
+# может коммититься в форк оператора. .env — секреты, всегда gitignored,
+# оверрайдит project.config при дублировании ключей.
+load_dotenv(PROJECT_ROOT / "project.config")
+load_dotenv(PROJECT_ROOT / ".env", override=True)
 
 
 class Config(BaseModel):

@@ -1,0 +1,50 @@
+# project.config — постоянные параметры адаптации корпуса.
+# Скопировать в project.config (рядом) и заполнить.
+# Этот файл — для **публичных** параметров (без секретов). Если
+# оператор делает свой fork репо — этот файл можно безопасно
+# коммитить. Секреты (TG_BOT_TOKEN, GH_TOKEN) идут в .env, который
+# в .gitignore.
+#
+# Формат — .env-совместимый. Загружается src/config.py до .env;
+# .env при дублировании оверрайдит project.config.
+
+# --- Корпус ---
+
+# Рабочая директория корпуса (Source/, Translated/, .batch/).
+# Должна существовать и быть доступна на запись.
+HEB_ROOT=
+
+# Короткое имя корпуса для логов, заголовков, тэгов.
+# Латиница/цифры/дефис, без пробелов и кириллицы.
+CORPUS_NAME=
+
+# Языки. Используются в промпте и в подписях сайта.
+# ISO 639-1: en, ru, zh, es, pt, ja, de, ko, fr, it, tr, he, arc, …
+# Для иврита+арамита (как в Зоаре) — he+arc.
+SOURCE_LANG=
+TARGET_LANG=
+
+# --- Чанкование ---
+
+# Размер чанка в символах исходника. См. подробности в .env.example
+# (раздел «Чанкование»). Если статьи в твоём корпусе длиннее
+# дефолтного Зоар-формата — увеличь.
+CHUNK_BUDGET_CHARS=7500
+
+# --- GitHub Pages (опционально) ---
+
+# Имена репозиториев и custom domain — публичные, секретов нет.
+# GH_TOKEN идёт в .env.
+GH_REPO=
+GH_MIRROR_REPO=
+GH_CUSTOM_DOMAIN=
+
+# Git-committer для auto-deploy. Default — `zohar-translator-bot`.
+GH_COMMIT_USER=zohar-translator-bot
+GH_COMMIT_EMAIL=zohar-translator-bot@users.noreply.github.com
+
+# --- Лэндинг ---
+
+# Список локалей через запятую для docs/index.html (см. B4 в Plan).
+# Порядок отражается в шапке-переключателе.
+LANDING_LANGS=en,ru,zh,es,pt,ja,de,ko,fr,it,tr
