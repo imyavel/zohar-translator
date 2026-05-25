@@ -26,11 +26,15 @@
         RU:'ru', BY:'ru', KZ:'ru', UA:'ru', KG:'ru'
       };
 
-      function pickLang(country) {
-        if (country && COUNTRY_MAP[country]) return COUNTRY_MAP[country];
+      // Country found via geo-IP: country in COUNTRY_MAP → its language;
+      // any other country (incl. US/UK/AU/NZ/IN/PH/…) → English by default.
+      function pickLangByCountry(country) {
+        return COUNTRY_MAP[country] || 'en';
+      }
+      // Browser locale — only when geo-IP failed entirely (timeout/error).
+      function pickLangByBrowser() {
         var nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
-        if (LANGS.indexOf(nav) !== -1) return nav;
-        return 'en';
+        return LANGS.indexOf(nav) !== -1 ? nav : 'en';
       }
       function go(lang) {
         if (LANGS.indexOf(lang) === -1) lang = 'en';
@@ -45,7 +49,7 @@
       var done = false;
       var timer = setTimeout(function () {
         if (done) return; done = true;
-        go(pickLang(null));
+        go(pickLangByBrowser());
       }, 1500);
 
       fetch('https://www.cloudflare.com/cdn-cgi/trace', { cache: 'no-store' })
@@ -53,11 +57,11 @@
         .then(function (text) {
           if (done) return; done = true; clearTimeout(timer);
           var m = text.match(/loc=([A-Z]{2})/);
-          go(pickLang(m ? m[1] : null));
+          go(m ? pickLangByCountry(m[1]) : pickLangByBrowser());
         })
         .catch(function () {
           if (done) return; done = true; clearTimeout(timer);
-          go(pickLang(null));
+          go(pickLangByBrowser());
         });
     })();
   </script>
