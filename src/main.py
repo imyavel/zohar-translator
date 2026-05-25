@@ -71,7 +71,7 @@ async def amain() -> int:
 
     logger = logging.getLogger("zohartgbatch.main")
     logger.info(
-        "ZoharTGBatch starting · heb_root=%s · log_level=%s · bot=%s · "
+        "zohar-translator starting · heb_root=%s · log_level=%s · bot=%s · "
         "parallel=%d · primer=%s",
         cfg.heb_root, cfg.log_level, "off" if args.no_bot else "on",
         cfg.parallel_translators, cfg.parallel_cache_primer,

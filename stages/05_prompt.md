@@ -69,18 +69,38 @@
 
 ## 5.4 Проверка подстановок
 
-`build_batch.py` подставляет:
+Канонический список подстановок — в коде
+[`corpus_tools/build_batch.py`](../corpus_tools/build_batch.py),
+функция `render_prompt` (dict `subs`). На момент написания этой
+страницы движок подставляет:
 
 | Плейсхолдер | Чем заменяется |
 |---|---|
-| `{{HEB_ROOT}}` | значение из `project.config` |
+| `{{NN}}` | `article_index` из записи каталога (целое, 1-based внутри главы) |
+| `{{NN:03d}}` | то же, но zero-padded до трёх знаков (для имён файлов) |
+| `{{Chapter}}` | английское имя главы (`chapter`) — для логов и фильтров |
+| `{{chapter_ru}}` | русское имя главы (используется в путях) |
+| `{{book}}` | полное название книги |
+| `{{sulam_section}}` | имя JSON-файла источника в `Source/Sulam_on_Zohar/` (Зоар-специфично) |
+| `{{chapter_dir}}` | директория главы: `Translated/{{book}}/{{chapter_ru}}` |
+| `{{start}}`, `{{end}}` | диапазон параграфов источника для статьи (целые, 1-based) |
+| `{{he_title}}` | название статьи на языке-источнике (для Зоара — иврит) |
+| `{{resume_block}}` | блок «ВНИМАНИЕ: РЕЖИМ ДОПЕРЕВОДА …» — вставляется только в resumable-режиме, иначе пустая строка |
+| `{{chunk_budget_chars}}` | бюджет одного чанка в символах исходного текста |
+| `{{HEB_ROOT}}` | значение `HEB_ROOT` из `.env` / `project.config` |
 | `{{CORPUS_TOOLS}}` | абсолютный путь к `<repo>/corpus_tools/` |
-| `{{GLOSSARY_PATH}}` | `<repo>/glossary/glossary.json` |
-| `{{ARTICLE_ID}}`, `{{CHUNK_NUM}}` | конкретные значения per batch |
+| `{{GLOSSARY_PATH}}` | абсолютный путь к `<repo>/glossary/glossary.json` |
 
-Если ты добавила новые плейсхолдеры в промпт — допиши их в
-substitution-dict в `build_batch.py` (одна строка). Это нормально,
-проект для того и устроен.
+**Важно.** Если ты добавила в свой переписанный промпт **новый**
+плейсхолдер, его НУЖНО добавить и в dict `subs` в
+`corpus_tools/build_batch.py:render_prompt`. Иначе
+`build_batch.py` упадёт на следующей строке (`re.findall` →
+`raise RuntimeError('unresolved placeholders: …')`) и orchestrator
+уйдёт в ERROR ещё до запуска translator'а.
+
+И наоборот: если в твоём корпусе нет, например, `sulam_section` или
+`he_title` (это специфика Зоара), убери эти ключи и из `subs`, и из
+промпта — лишние ключи в `subs` ничего не ломают, но мусорят.
 
 ## 5.5 Сухой запуск промпта (опционально)
 

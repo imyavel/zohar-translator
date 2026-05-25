@@ -185,7 +185,7 @@ class ZoharBot:
             raise RuntimeError("Telegram updater not initialized")
         await self.app.updater.start_polling(drop_pending_updates=False)
         await self._send_owner(
-            f"✅ ZoharTGBatch bot online (parallel={self.cfg.parallel_translators}"
+            f"✅ zohar-translator bot online (parallel={self.cfg.parallel_translators}"
             f"{', primer' if self.cfg.parallel_cache_primer else ''}). "
             "/status или кнопки внизу.",
             reply_markup=REPLY_KEYBOARD,
@@ -332,7 +332,7 @@ class ZoharBot:
 
     async def _cmd_start(self, update: Update, _ctx) -> None:
         await update.effective_message.reply_text(
-            "Привет. Я ZoharTGBatch — параллельный вариант ZoharTG.\n"
+            "Привет. Я zohar-translator — параллельный батч-оркестратор.\n"
             f"Запускаю {self.cfg.parallel_translators} translator'ов одновременно "
             f"в одной волне. Жми кнопки внизу или /-команды.",
             reply_markup=REPLY_KEYBOARD,
@@ -1494,7 +1494,7 @@ class ZoharBot:
             State.DONE: "🎉",
             State.ERROR: "🚨",
         }.get(r.state, "·")
-        head = f"🌳 <b>ZoharTGBatch</b> · {ts_now}\n\n"
+        head = f"🌳 <b>zohar-translator</b> · {ts_now}\n\n"
         head += f"{state_emoji} <b>{r.state.value}</b>"
         if r.state == State.IDLE and r.idle_reason:
             head += f" · {r.idle_reason}"

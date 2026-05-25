@@ -326,7 +326,7 @@ def _install_clipboard_support(root: tk.Misc) -> None:
 class App:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
-        root.title("ZoharTGBatch")
+        root.title("zohar-translator")
         root.geometry("960x680")
         root.minsize(720, 480)
 
@@ -351,7 +351,7 @@ class App:
         except Exception as e:
             self.log_path = None
             messagebox.showwarning(
-                "ZoharTGBatch",
+                "zohar-translator",
                 f"Не могу открыть {log_file} для записи:\n{e}\n"
                 "Лог в виджете работает, но в файл писаться не будет.",
             )
@@ -493,7 +493,7 @@ class App:
         try:
             _, values = read_env_file()
         except Exception as e:
-            messagebox.showerror("ZoharTGBatch", f"Не могу прочитать .env:\n{e}")
+            messagebox.showerror("zohar-translator", f"Не могу прочитать .env:\n{e}")
             return
 
         # Tab 1: parallel translators
@@ -527,14 +527,14 @@ class App:
             n = int(raw)
         except ValueError:
             messagebox.showerror(
-                "ZoharTGBatch",
+                "zohar-translator",
                 f"PARALLEL_TRANSLATORS должно быть целым в [{PARALLEL_MIN},{PARALLEL_MAX}]",
             )
             self._reload_parallel_from_env()
             return
         if not (PARALLEL_MIN <= n <= PARALLEL_MAX):
             messagebox.showerror(
-                "ZoharTGBatch",
+                "zohar-translator",
                 f"PARALLEL_TRANSLATORS должно быть в [{PARALLEL_MIN},{PARALLEL_MAX}], получено {n}",
             )
             self._reload_parallel_from_env()
@@ -549,7 +549,7 @@ class App:
             self.parallel_var.set(str(n))
             self._append_log(f"[gui] .env: {PARALLEL_KEY}={n}\n")
         except Exception as e:
-            messagebox.showerror("ZoharTGBatch", f"Не могу записать .env:\n{e}")
+            messagebox.showerror("zohar-translator", f"Не могу записать .env:\n{e}")
 
     def _reload_parallel_from_env(self) -> None:
         try:
@@ -565,7 +565,7 @@ class App:
             self.cfg_status_var.set(f"Сохранено ({time.strftime('%H:%M:%S')})")
             self._append_log("[gui] .env: настройки сохранены\n")
         except Exception as e:
-            messagebox.showerror("ZoharTGBatch", f"Не могу записать .env:\n{e}")
+            messagebox.showerror("zohar-translator", f"Не могу записать .env:\n{e}")
 
     def _on_restore_env(self) -> None:
         self._load_settings_into_ui()
@@ -581,7 +581,7 @@ class App:
         try:
             self.bot.start()
         except Exception as e:
-            messagebox.showerror("ZoharTGBatch", f"Не могу запустить main.py:\n{e}")
+            messagebox.showerror("zohar-translator", f"Не могу запустить main.py:\n{e}")
             return
         self._append_log(f"[gui] запуск: {_python_exe()} {MAIN_PY}\n")
         self._refresh_buttons()
@@ -591,7 +591,7 @@ class App:
             return
         if self.current_state != "IDLE":
             messagebox.showwarning(
-                "ZoharTGBatch",
+                "zohar-translator",
                 "Stop доступен только когда оркестратор в состоянии IDLE.\n"
                 "Сначала нажми Stop или Force stop в Telegram-боте.",
             )
@@ -606,7 +606,7 @@ class App:
             self.root.destroy()
             return
         ok = messagebox.askyesno(
-            "ZoharTGBatch",
+            "zohar-translator",
             "Только завершить все работающие процессы?\n\n"
             "Бот сейчас работает. Закрытие окна отправит ему\n"
             "Ctrl-Break (graceful shutdown), подождёт до 30 сек,\n"
@@ -756,14 +756,14 @@ def _ensure_deps(root: tk.Tk) -> bool:
     req = PROJECT_ROOT / "requirements.txt"
     if not req.is_file():
         messagebox.showerror(
-            "ZoharTGBatch",
+            "zohar-translator",
             f"Не хватает зависимостей: {', '.join(missing)}\n"
             f"И файл {req} отсутствует — не из чего ставить.",
         )
         return False
 
     dlg = tk.Toplevel(root)
-    dlg.title("ZoharTGBatch — установка зависимостей")
+    dlg.title("zohar-translator — установка зависимостей")
     dlg.geometry("560x180")
     dlg.transient(root)
     dlg.resizable(False, False)
@@ -828,7 +828,7 @@ def _ensure_deps(root: tk.Tk) -> bool:
     if not result["ok"]:
         tail = str(result["output"])[-3000:]
         messagebox.showerror(
-            "ZoharTGBatch",
+            "zohar-translator",
             "pip install завершился с ошибкой.\n\nПоследний вывод:\n\n" + tail,
         )
         return False
@@ -839,7 +839,7 @@ def _ensure_deps(root: tk.Tk) -> bool:
     still_missing = _try_imports(REQUIRED_IMPORTS)
     if still_missing:
         messagebox.showerror(
-            "ZoharTGBatch",
+            "zohar-translator",
             "pip отчитался об успехе, но импорт всё равно падает: "
             + ", ".join(still_missing)
             + f"\n\nЗапускайте установку зависимостей вручную:\n"
